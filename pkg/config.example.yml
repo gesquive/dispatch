@@ -1,0 +1,19 @@
+web:
+  address: 0.0.0.0
+  port: 8080
+dispatch:
+  -
+    auth-token: qasZ1z6HfVPRCq1D0GQUpVB8
+    from: somebody@dispatch.org
+    to: somebody@example.com
+  -
+    auth-token: f6uf9xvb@tze22O!KCZ7WExe
+    from: app@dispatch.org
+    to:
+      - somebody@example.com
+      - somebody.else@example.com
+smtp:
+  server: localhost
+  port: 25
+  username: ""
+  password: ""

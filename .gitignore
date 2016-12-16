@@ -1,6 +1,10 @@
+/bin/*
+vendor/*
+dist/
+scripts/
+
+*.bak
 *.log
+
 config*.yml
-
-scripts
-
 dispatch

@@ -1,0 +1,8 @@
+package: .
+import:
+- package: github.com/Sirupsen/logrus
+- package: github.com/spf13/cobra
+- package: github.com/spf13/viper
+- package: github.com/x-cray/logrus-prefixed-formatter
+- package: gopkg.in/gin-gonic/gin.v1
+- package: gopkg.in/gomail.v2

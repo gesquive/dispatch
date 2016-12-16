@@ -39,35 +39,43 @@ FIND_DIST:=find * -type d -exec
 
 default: build
 
+.PHONY: help
 help:
 	@echo 'Management commands for $(BIN_NAME):'
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
+.PHONY: build
 build: ## Compile the project
 	@echo "building ${OWNER} ${BIN_NAME} ${VERSION}"
 	@echo "GOPATH=${GOPATH}"
 	${GOCC} build -ldflags "-X main.version=${VERSION} -X main.dirty=${GIT_DIRTY}" -o ${BIN_NAME}
 
+.PHONY: install
 install: build ## Install binary
 	install -d ${DESTDIR}/usr/local/bin/
 	install -m 755 ./${BIN_NAME} ${DESTDIR}/usr/local/bin/${BIN_NAME}
 
+.PHONY: depends
 depends: ## Download project dependencies
 	${GOCC} get -u github.com/Masterminds/glide
 	glide install
 
+.PHONY: test
 test: ## Run golang tests
 	${GOCC} test ./...
 
+.PHONY: clean
 clean: ## Clean the directory tree
 	${GOCC} clean
 	rm -f ./${BIN_NAME}.test
 	rm -f ./${BIN_NAME}
 	rm -rf ./dist
 
+.PHONY: bootstrap-dist
 bootstrap-dist:
 	${GOCC} get -u github.com/mitchellh/gox
 
+.PHONY: build-all
 build-all: bootstrap-dist
 	gox -verbose \
 	-ldflags "-X main.version=${VERSION} -X main.dirty=${GIT_DIRTY}" \
@@ -75,6 +83,7 @@ build-all: bootstrap-dist
 	-arch="amd64 386" \
 	-output="dist/{{.OS}}-{{.Arch}}/{{.Dir}}" .
 
+.PHONY: dist
 dist: build-all ## Cross compile the full distribution
 	pkg/dist.sh "linux-386" "${PROJECT_NAME}-${VERSION}-linux-x32"
 	pkg/dist.sh "linux-amd64" "${PROJECT_NAME}-${VERSION}-linux-x64"
@@ -83,16 +92,14 @@ dist: build-all ## Cross compile the full distribution
 	pkg/dist.sh "windows-386" "${PROJECT_NAME}-${VERSION}-windows-x32"
 	pkg/dist.sh "windows-amd64" "${PROJECT_NAME}-${VERSION}-windows-x64"
 
-
+.PHONY: fmt
 fmt: ## Reformat the source tree with gofmt
 	find . -name '*.go' -not -path './.vendor/*' -exec gofmt -w=true {} ';'
 
+.PHONY: link
 link: ## Symlink this project into the GOPATH
 	# relink into the go path
 	if [ ! $(INSTALL_PATH) -ef . ]; then \
 		mkdir -p `dirname $(INSTALL_PATH)`; \
 		ln -s $(PWD) $(INSTALL_PATH); \
 	fi
-
-
-.PHONY: build help test install depends clean bootstrap-dist build-all dist fmt link

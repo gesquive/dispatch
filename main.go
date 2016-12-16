@@ -39,8 +39,8 @@ func main() {
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
 	Use:   "dispatch",
-	Short: "A mail forwarding API for static sites",
-	Long:  `This app runs a webserver that provides an api for email forwards`,
+	Short: "A mail forwarding API service",
+	Long:  `This app provides an json-api for sending email`,
 	Run:   run,
 }
 
