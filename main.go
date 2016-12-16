@@ -169,14 +169,16 @@ func run(cmd *cobra.Command, args []string) {
 		viper.GetString("smtp.password"),
 	}
 
-	log.Debugf("Run the webserver here\n")
+	// finally, run the webserver
+	router := gin.New()
+	router.Use(logger)
 
-	router := gin.Default()
 	router.POST("/send", send)
 
 	address := viper.GetString("web.address")
 	port := viper.GetInt("web.port")
-	log.Debugf("%s:%d", address, port)
+
+	log.Infof("Starting webserver on %s:%d", address, port)
 	router.Run(fmt.Sprintf("%s:%d", address, port))
 }
 
@@ -208,4 +210,18 @@ func getDispatchMap() map[string]dispatch {
 		dispatchMap[d.AuthToken] = d
 	}
 	return dispatchMap
+}
+
+func logger(c *gin.Context) {
+	// calculate the latency
+	t := time.Now()
+	c.Next()
+	latency := time.Since(t)
+
+	clientIP := c.ClientIP()
+	statusCode := c.Writer.Status()
+	path := c.Request.URL.Path
+	method := c.Request.Method
+
+	log.Printf("%s - %s %s %d %v", clientIP, method, path, statusCode, latency)
 }
