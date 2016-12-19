@@ -52,6 +52,7 @@ Usage:
 
 Flags:
   -a, --address string         The IP address to bind the web server too (default "0.0.0.0")
+      --check                  Check the config for errors and exit
       --config string          Path to a specific config file (default "./config.yaml")
       --log-path string        Path to log files (default "/var/log/")
   -p, --port int               The port to bind the webserver too (default 8080)
