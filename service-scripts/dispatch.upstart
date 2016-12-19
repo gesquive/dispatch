@@ -1,0 +1,29 @@
+# More info: https://github.com/gesquive/dispatch
+# copy or hard link to
+#   Ubuntu: /etc/init/dispatch.conf
+
+description "dispatch email service"
+
+start on (started network)
+stop on runlevel [!2345]
+
+respawn
+respawn limit 99 5
+
+script
+
+    export HOME="/srv"
+    echo $$ > /var/run/dispatch.pid
+    exec /opt/dispatch/dispatch
+
+end script
+
+pre-start script
+    /opt/dispatch/dispatch --check
+    echo "[`date '+%FT%TZ'`] starting service" >> /var/log/dispatch.log
+end script
+
+pre-stop script
+    rm /var/run/dispatch.pid
+    echo "[`date '+%FT%TZ'`] service stopping" >> /var/log/dispatch.log
+end script

@@ -37,6 +37,7 @@ cp README.md "${DST}"
 cp pkg/config.example.yml "${DST}"
 
 if [[ "${DST}" != *"windows"* ]]; then
+    cp -R service-scripts "${DST}"
     # echo "Compressing tarbell"
     pushd dist || exit
     rm -f "${DSTNAME}.tar.gz"

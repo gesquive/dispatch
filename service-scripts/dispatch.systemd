@@ -1,0 +1,28 @@
+# copy or hard link to
+#   Debian: /lib/systemd/system/dispatch.service
+#   Ubuntu: /etc/systemd/system/dispatch.service
+#
+# To start dispatch once for USER use:
+#   systemctl start dispatch@USER.service
+#
+# To start dispatch on boot for USER use:
+#   systemctl enable dispatch@USER.service
+#
+# Config will be placed in /etc/dispatch/config.yml
+
+[Unit]
+Description=dispatch email service
+Documentation=https://github.com/gesquive/dispatch
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+ExecStartPre=/opt/dispatch/dispatch --check
+ExecStart=/opt/dispatch/dispatch
+User=dispatch
+Group=dispatch
+Type=simple
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
