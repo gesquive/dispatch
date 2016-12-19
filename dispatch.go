@@ -14,7 +14,7 @@ type dispatch struct {
 
 // DispatchMessage is the expected message submission
 type DispatchMessage struct {
-	AuthToken string `json:"auth-token"`
+	AuthToken string `json:"auth-token" binding:"required"`
 	Message   string `json:"message"`
 	Subject   string `json:"subject"`
 }
