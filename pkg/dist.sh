@@ -38,6 +38,7 @@ cp pkg/config.example.yml "${DST}"
 
 if [[ "${DST}" != *"windows"* ]]; then
     cp -R service-scripts "${DST}"
+    cp pkg/logrotate.dispatch "${DST}"
     # echo "Compressing tarbell"
     pushd dist || exit
     rm -f "${DSTNAME}.tar.gz"
