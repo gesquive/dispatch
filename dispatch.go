@@ -1,47 +1,113 @@
 package main
 
 import (
-	"gopkg.in/gin-gonic/gin.v1"
-
+	"errors"
+	"fmt"
 	log "github.com/Sirupsen/logrus"
+	"gopkg.in/yaml.v2"
+	"io/ioutil"
+	"path/filepath"
 )
 
-type dispatch struct {
-	AuthToken string
-	From      string
-	To        []string
-}
+// DispatchMap is a AuthToken to DispatchTarget map
+type DispatchMap map[string]DispatchTarget
 
-// DispatchMessage is the expected message submission
-type DispatchMessage struct {
+// DispatchRequest is the expected message submission
+type DispatchRequest struct {
 	AuthToken string `json:"auth-token" binding:"required"`
 	Message   string `json:"message"`
 	Subject   string `json:"subject"`
 }
 
-func send(c *gin.Context) {
-	var msg DispatchMessage
-	c.BindJSON(&msg)
+// Dispatch is the central point for the dispatches
+type Dispatch struct {
+	dispatchMap  DispatchMap
+	smtpSettings SMTPSettings
+}
 
-	if len(msg.AuthToken) == 0 {
-		c.JSON(400, gin.H{"status": "error: field 'auth-token' missing or incomplete"})
+// NewDispatch create a new dispatch
+func NewDispatch(targetDir string, smtpSettings SMTPSettings) *Dispatch {
+	d := new(Dispatch)
+	d.dispatchMap = make(DispatchMap)
+	d.LoadTargets(targetDir)
+	return d
+}
+
+// LoadTargets Loads all of the configs in the target config dir
+func (d *Dispatch) LoadTargets(targetDir string) {
+	targets, err := getTargetConfigList(targetDir)
+	if err != nil {
+		log.Errorf("error: could not load targets: %v", err)
 		return
 	}
+	log.Debugf("Found %d targets in %s", len(targets), targetDir)
+	for _, target := range targets {
+		log.Debugf("loading target %s", target)
+		data, err := ioutil.ReadFile(target)
+		if err != nil {
+			log.Errorf("error: could not load %s: %v", target, err)
+			continue
+		}
+		targetConf := loadTarget(data)
+		d.dispatchMap[targetConf.AuthToken] = targetConf
+	}
+}
 
-	target, found := dispatchMap[msg.AuthToken]
+// Send places the request in the queue
+func (d *Dispatch) Send(request DispatchRequest) error {
+	target, found := d.dispatchMap[request.AuthToken]
 	if !found {
-		c.JSON(401, gin.H{"status": "error: auth-token not recognized"})
-		return
+		return errors.New("auth-token not recognized")
 	}
+	//TODO: Rate-limit by ip address here
 
 	var email Message
+	// if 'from' field is black, email package will fill in a default
 	email.FromAddress = target.From
 	email.ToAddressList = target.To
-	email.TextMessage = msg.Message
-	email.Subject = msg.Subject
+	if len(target.SubjectPrefix) > 0 {
+		email.Subject = fmt.Sprintf("%s %s", target.SubjectPrefix, request.Subject)
+	} else {
+		email.Subject = request.Subject
+	}
+	if len(target.MessagePrefix) > 0 {
+		email.TextMessage = fmt.Sprintf("%s\n%s", target.MessagePrefix, request.Message)
+	} else {
+		email.TextMessage = request.Message
+	}
 
 	log.Debugf("sending message: %+v", email)
+	sendMessage(email, d.smtpSettings)
+	return nil
+}
 
-	sendMessage(email, smtpSettings)
-	c.JSON(200, gin.H{"status": "success"})
+// DispatchTarget is a target to send too
+type DispatchTarget struct {
+	AuthToken     string   `yaml:"auth-token"`
+	From          string   `yaml:"from"`
+	To            []string `yaml:"to"`
+	SubjectPrefix string   `yaml:"subject-prefix"`
+	Subject       string   `yaml:"subject"`
+	MessagePrefix string   `yaml:"message-prefix"`
+}
+
+func getTargetConfigList(targetDir string) (target []string, err error) {
+	pattern := fmt.Sprintf("%s/*.yml", targetDir)
+	log.Debugf("searching %s", pattern)
+	matches, err := filepath.Glob(pattern)
+	if err != nil {
+		log.Errorf("error: %v", err)
+		return nil, err
+	}
+	return matches, nil
+}
+
+func loadTarget(data []byte) DispatchTarget {
+	t := DispatchTarget{}
+	err := yaml.Unmarshal(data, &t)
+	if err != nil {
+		log.Errorf("error: parsing target: %v", err)
+	}
+	log.Debugf("loaded target: %+v", t)
+	return t
 }

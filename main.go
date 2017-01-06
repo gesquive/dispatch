@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"reflect"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -15,7 +14,7 @@ import (
 	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 )
 
-var version = "v0.1.1"
+var version = "v0.2.0"
 var dirty = ""
 
 var cfgFile string
@@ -27,8 +26,7 @@ var verbose bool
 var debug bool
 var check bool
 
-var dispatchMap map[string]dispatch
-var smtpSettings SMTPSettings
+var dispatch *Dispatch
 
 func main() {
 	displayVersion = fmt.Sprintf("dispatch %s%s",
@@ -60,11 +58,12 @@ func Execute(version string) {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	//TODO: add --check flag to check for config corruption
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "",
-		"Path to a specific config file (default \"./config.yaml\")")
+		"Path to a specific config file (default \"./config.yml\")")
 	RootCmd.PersistentFlags().String("log-path", "",
 		"Path to log files (default \"/var/log/\")")
+	RootCmd.PersistentFlags().String("target-dir", "",
+		"Path to target configs (default \"/etc/dispatch/targets.d\")")
 	RootCmd.PersistentFlags().BoolVar(&check, "check", false,
 		"Check the config for errors and exit")
 
@@ -101,6 +100,7 @@ func init() {
 	viper.BindEnv("smtp_password")
 
 	viper.BindPFlag("log_path", RootCmd.PersistentFlags().Lookup("log-path"))
+	viper.BindPFlag("target_dir", RootCmd.PersistentFlags().Lookup("target-dir"))
 	viper.BindPFlag("web.address", RootCmd.PersistentFlags().Lookup("address"))
 	viper.BindPFlag("web.port", RootCmd.PersistentFlags().Lookup("port"))
 	viper.BindPFlag("smtp.server", RootCmd.PersistentFlags().Lookup("smtp-server"))
@@ -109,6 +109,7 @@ func init() {
 	viper.BindPFlag("smtp.password", RootCmd.PersistentFlags().Lookup("smtp-password"))
 
 	viper.SetDefault("log_path", "/var/log/")
+	viper.SetDefault("target_dir", "/etc/dispatch/targets.d")
 	viper.SetDefault("web.address", "0.0.0.0")
 	viper.SetDefault("web.port", 8080)
 	viper.SetDefault("smtp.server", "localhost")
@@ -172,11 +173,7 @@ func run(cmd *cobra.Command, args []string) {
 		log.Fatal("No config file found.")
 	}
 
-	dispatchMap = getDispatchMap(viper.Get("dispatch"))
-	for _, val := range dispatchMap {
-		log.Debugf("config: dispatch=%+v", val)
-	}
-	smtpSettings = SMTPSettings{
+	smtpSettings := SMTPSettings{
 		viper.GetString("smtp.server"),
 		viper.GetInt("smtp.port"),
 		viper.GetString("smtp.username"),
@@ -184,6 +181,10 @@ func run(cmd *cobra.Command, args []string) {
 	}
 	log.Debugf("config: smtp={Host:%s Port:%d UserName:%s}", smtpSettings.Host,
 		smtpSettings.Port, smtpSettings.UserName)
+
+	targetsDir := viper.Get("target_dir").(string)
+	log.Debugf("config: targets=%s", targetsDir)
+	dispatch = NewDispatch(targetsDir, smtpSettings)
 
 	address := viper.GetString("web.address")
 	port := viper.GetInt("web.port")
@@ -197,66 +198,6 @@ func run(cmd *cobra.Command, args []string) {
 	}
 
 	// finally, run the webserver
-	router := gin.New()
-	router.Use(logger)
-
-	router.POST("/send", send)
-
-	log.Infof("Starting webserver on %s:%d", address, port)
-	router.Run(fmt.Sprintf("%s:%d", address, port))
-}
-
-func getDispatchMap(rawMap interface{}) map[string]dispatch {
-	s := reflect.ValueOf(rawMap)
-	if s.Kind() != reflect.Slice {
-		log.Fatal("config: dispatch section is not properly formatted")
-	}
-
-	dispatchMap := make(map[string]dispatch)
-	for i := 0; i < s.Len(); i++ {
-		dmap := s.Index(i).Interface().(map[interface{}]interface{})
-		// check for mandatory fields
-		authToken, ok := dmap["auth-token"]
-		if !ok {
-			log.Fatal("config: dispatch.auth-token is missing")
-		}
-		to, ok := dmap["to"]
-		if !ok {
-			log.Fatal("config: dispatch.to field is missing")
-		}
-
-		var d dispatch
-		d.AuthToken = authToken.(string)
-		if from, ok := dmap["from"]; ok {
-			d.From = from.(string)
-		}
-
-		if reflect.ValueOf(to).Kind() == reflect.String {
-			d.To = []string{dmap["to"].(string)}
-		} else if reflect.ValueOf(to).Kind() == reflect.Slice {
-			d.To = make([]string, len(dmap["to"].([]interface{})))
-			for i, a := range dmap["to"].([]interface{}) {
-				d.To[i] = a.(string)
-			}
-		} else {
-			log.Fatal("config: dispatch.to field is not properly formatted")
-		}
-
-		dispatchMap[d.AuthToken] = d
-	}
-	return dispatchMap
-}
-
-func logger(c *gin.Context) {
-	// calculate the latency
-	t := time.Now()
-	c.Next()
-	latency := time.Since(t)
-
-	clientIP := c.ClientIP()
-	statusCode := c.Writer.Status()
-	path := c.Request.URL.Path
-	method := c.Request.Method
-
-	log.Printf("%s - %s %s %d %v", clientIP, method, path, statusCode, latency)
+	server := NewServer(dispatch)
+	server.Run(fmt.Sprintf("%s:%d", address, port))
 }

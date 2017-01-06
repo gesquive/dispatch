@@ -7,4 +7,5 @@ scripts/
 *.log
 
 config*.yml
+todo.md
 dispatch
