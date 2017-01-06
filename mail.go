@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"gopkg.in/gomail.v2"
+	gomail "gopkg.in/gomail.v2"
 
 	log "github.com/Sirupsen/logrus"
 )

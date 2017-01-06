@@ -1,14 +1,18 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"math"
 	"os"
 	"path"
+	"strconv"
+	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"gopkg.in/gin-gonic/gin.v1"
 
 	log "github.com/Sirupsen/logrus"
 	prefixed "github.com/x-cray/logrus-prefixed-formatter"
@@ -73,6 +77,9 @@ func init() {
 		"The IP address to bind the web server too")
 	RootCmd.PersistentFlags().IntP("port", "p", 8080,
 		"The port to bind the webserver too")
+	RootCmd.PersistentFlags().StringP("rate-limit", "r", "inf",
+		"The rate limit at which to send emails in the format 'inf|<num>/<duration>'. "+
+			"inf for infinite or 1/10s for 1 email per 10 seconds.")
 
 	RootCmd.PersistentFlags().StringP("smtp-server", "x", "localhost",
 		"The SMTP server to send email through")
@@ -94,6 +101,7 @@ func init() {
 	viper.AutomaticEnv()
 	viper.BindEnv("address")
 	viper.BindEnv("port")
+	viper.BindEnv("rate_limit")
 	viper.BindEnv("smtp_server")
 	viper.BindEnv("smtp_port")
 	viper.BindEnv("smtp_username")
@@ -103,6 +111,7 @@ func init() {
 	viper.BindPFlag("target_dir", RootCmd.PersistentFlags().Lookup("target-dir"))
 	viper.BindPFlag("web.address", RootCmd.PersistentFlags().Lookup("address"))
 	viper.BindPFlag("web.port", RootCmd.PersistentFlags().Lookup("port"))
+	viper.BindPFlag("rate-limit", RootCmd.PersistentFlags().Lookup("rate-limit"))
 	viper.BindPFlag("smtp.server", RootCmd.PersistentFlags().Lookup("smtp-server"))
 	viper.BindPFlag("smtp.port", RootCmd.PersistentFlags().Lookup("smtp-port"))
 	viper.BindPFlag("smtp.username", RootCmd.PersistentFlags().Lookup("smtp-username"))
@@ -112,6 +121,7 @@ func init() {
 	viper.SetDefault("target_dir", "/etc/dispatch/targets.d")
 	viper.SetDefault("web.address", "0.0.0.0")
 	viper.SetDefault("web.port", 8080)
+	viper.SetDefault("rate-limit", "inf")
 	viper.SetDefault("smtp.server", "localhost")
 	viper.SetDefault("smtp.port", 25)
 }
@@ -188,8 +198,15 @@ func run(cmd *cobra.Command, args []string) {
 
 	address := viper.GetString("web.address")
 	port := viper.GetInt("web.port")
+
+	limitMax, limitTTL, err := getRateLimit(viper.GetString("rate-limit"))
+	if err != nil {
+		log.Fatalf("error parsing limit: %v", err)
+	}
+
 	if check {
 		log.Debugf("config: webserver=%s:%d", address, port)
+		log.Debugf("config: rate-limit=%d/%s", limitMax, limitTTL)
 		log.Infof("Config file format checks out, exiting")
 		if !debug {
 			log.Infof("Use the --debug flag for more info")
@@ -198,6 +215,27 @@ func run(cmd *cobra.Command, args []string) {
 	}
 
 	// finally, run the webserver
-	server := NewServer(dispatch)
+	server := NewServer(dispatch, limitMax, limitTTL)
 	server.Run(fmt.Sprintf("%s:%d", address, port))
+}
+
+func getRateLimit(rateLimit string) (limitMax int64, limitTTL time.Duration, err error) {
+	if rateLimit == "inf" {
+		return math.MaxInt64, time.Nanosecond, nil
+	}
+
+	parts := strings.Split(rateLimit, "/")
+	if len(parts) != 2 {
+		msg := fmt.Sprintf("rate limit is not formatted properly - %v", rateLimit)
+		return limitMax, limitTTL, errors.New(msg)
+	}
+	limitMax, err = strconv.ParseInt(parts[0], 10, 64)
+	if err != nil {
+		return
+	}
+	limitTTL, err = time.ParseDuration(parts[1])
+	if err != nil {
+		return
+	}
+	return
 }

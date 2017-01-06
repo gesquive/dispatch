@@ -1,9 +1,13 @@
 package main
 
 import (
-	log "github.com/Sirupsen/logrus"
-	"gopkg.in/gin-gonic/gin.v1"
+	"math"
 	"time"
+
+	log "github.com/Sirupsen/logrus"
+	"github.com/didip/tollbooth"
+	"github.com/didip/tollbooth/thirdparty/tollbooth_gin"
+	"github.com/gin-gonic/gin"
 )
 
 // Server is the dispatch server
@@ -13,22 +17,31 @@ type Server struct {
 }
 
 // NewServer creates a new dispatch server
-func NewServer(dispatch *Dispatch) *Server {
+func NewServer(dispatch *Dispatch, limitMax int64, limitTTL time.Duration) *Server {
 	s := new(Server)
 	s.dispatch = dispatch
 
 	router := gin.New()
 	s.router = router
+
 	s.router.Use(webLogger)
 
-	s.router.POST("/send", send)
+	if limitMax != math.MaxInt64 {
+		log.Debugf("setting webserver rate-limit to %d/%s", limitMax, limitTTL)
+		limiter := tollbooth.NewLimiter(limitMax, limitTTL)
+		limiter.IPLookups = []string{"X-Forwarded-For", "RemoteAddr", "X-Real-IP"}
+
+		s.router.POST("/send", tollbooth_gin.LimitHandler(limiter), send)
+	} else {
+		s.router.POST("/send", send)
+	}
 
 	return s
 }
 
 // Run the server
 func (s Server) Run(address string) {
-	log.Infof("Starting webserver on %s", address)
+	log.Infof("starting webserver on %s", address)
 	s.router.Run(address)
 }
 

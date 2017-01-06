@@ -3,10 +3,11 @@ package main
 import (
 	"errors"
 	"fmt"
-	log "github.com/Sirupsen/logrus"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"path/filepath"
+
+	log "github.com/Sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 )
 
 // DispatchMap is a AuthToken to DispatchTarget map
@@ -59,7 +60,6 @@ func (d *Dispatch) Send(request DispatchRequest) error {
 	if !found {
 		return errors.New("auth-token not recognized")
 	}
-	//TODO: Rate-limit by ip address here
 
 	var email Message
 	// if 'from' field is black, email package will fill in a default
