@@ -1,19 +1,19 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"math"
+	"net/http"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/didip/tollbooth"
-	"github.com/didip/tollbooth/thirdparty/tollbooth_gin"
-	"github.com/gin-gonic/gin"
 )
 
 // Server is the dispatch server
 type Server struct {
 	dispatch *Dispatch
-	router   *gin.Engine
 }
 
 // NewServer creates a new dispatch server
@@ -21,19 +21,18 @@ func NewServer(dispatch *Dispatch, limitMax int64, limitTTL time.Duration) *Serv
 	s := new(Server)
 	s.dispatch = dispatch
 
-	router := gin.New()
-	s.router = router
-
-	s.router.Use(webLogger)
-
+	// setup a rate limiter if needed
 	if limitMax != math.MaxInt64 {
-		log.Debugf("setting webserver rate-limit to %d/%s", limitMax, limitTTL)
+		log.Infof("setting webserver rate-limit to %d/%s", limitMax, limitTTL)
 		limiter := tollbooth.NewLimiter(limitMax, limitTTL)
 		limiter.IPLookups = []string{"X-Forwarded-For", "RemoteAddr", "X-Real-IP"}
+		limiter.Methods = []string{"POST"}
 
-		s.router.POST("/send", tollbooth_gin.LimitHandler(limiter), send)
+		// setup endpoints
+		http.Handle("/send", tollbooth.LimitFuncHandler(limiter, send))
 	} else {
-		s.router.POST("/send", send)
+
+		http.HandleFunc("/send", send)
 	}
 
 	return s
@@ -42,37 +41,82 @@ func NewServer(dispatch *Dispatch, limitMax int64, limitTTL time.Duration) *Serv
 // Run the server
 func (s Server) Run(address string) {
 	log.Infof("starting webserver on %s", address)
-	s.router.Run(address)
+	log.Fatal(http.ListenAndServe(address, WriteLog(http.DefaultServeMux)))
 }
 
-func webLogger(c *gin.Context) {
-	// calculate the latency
-	t := time.Now()
-	c.Next()
-	latency := time.Since(t)
-
-	clientIP := c.ClientIP()
-	statusCode := c.Writer.Status()
-	path := c.Request.URL.Path
-	method := c.Request.Method
-
-	log.Printf("%s - %s %s %d %v", clientIP, method, path, statusCode, latency)
+type statusWriter struct {
+	http.ResponseWriter
+	statusCode int
+	length     int
 }
 
-func send(c *gin.Context) {
-	var msg DispatchRequest
-	c.BindJSON(&msg)
+func (w *statusWriter) WriteHeader(status int) {
+	w.statusCode = status
+	w.ResponseWriter.WriteHeader(status)
+}
 
-	if len(msg.AuthToken) == 0 {
-		c.JSON(400, gin.H{"status": "error",
-			"message": "field 'auth-token' missing or incomplete"})
+func (w *statusWriter) Write(b []byte) (int, error) {
+	if w.statusCode == 0 {
+		w.statusCode = 200
+	}
+	w.length = len(b)
+	return w.ResponseWriter.Write(b)
+}
+
+// WriteLog returns a server log handler
+func WriteLog(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		writer := statusWriter{w, 0, 0}
+
+		// calculate the latency
+		t := time.Now()
+		handler.ServeHTTP(&writer, r)
+		latency := time.Since(t)
+
+		clientIP := r.RemoteAddr
+		statusCode := writer.statusCode
+		path := r.URL.Path
+		method := r.Method
+		log.Printf("%s - %s %s %d %v", clientIP, method, path, statusCode, latency)
+	})
+}
+
+func send(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "404 page not found", 404)
 		return
 	}
 
-	err := dispatch.Send(msg)
+	if r.Body == nil {
+		http.Error(w, makeResponse("error", "please send a request body"), 400)
+		return
+	}
+	var msg DispatchRequest
+	err := json.NewDecoder(r.Body).Decode(&msg)
 	if err != nil {
-		c.JSON(401, gin.H{"status": "error", "message": err})
+		http.Error(w, makeResponse("error", "message format: %v", err), 400)
+		return
 	}
 
-	c.JSON(200, gin.H{"status": "success"})
+	if len(msg.AuthToken) == 0 {
+		http.Error(w, makeResponse("error", "field 'auth-token' missing or incomplete"), 400)
+		return
+	}
+
+	err = dispatch.Send(msg)
+	if err != nil {
+		http.Error(w, makeResponse("error", "%v", err), 400)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(makeResponse("success", "")))
+}
+
+func makeResponse(status string, message string, a ...interface{}) string {
+	if len(message) == 0 {
+		return fmt.Sprintf("{\"status\": \"%s\"}", status)
+	}
+	msg := fmt.Sprintf(message, a...)
+	return fmt.Sprintf("{\"status\": \"%s\", \"message\": \"%s\"}", status, msg)
 }
