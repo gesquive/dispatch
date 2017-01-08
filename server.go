@@ -34,6 +34,7 @@ func NewServer(dispatch *Dispatch, limitMax int64, limitTTL time.Duration) *Serv
 
 		http.HandleFunc("/send", send)
 	}
+	http.HandleFunc("/", defaultAction)
 
 	return s
 }
@@ -83,40 +84,65 @@ func WriteLog(handler http.Handler) http.Handler {
 
 func send(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
-		http.Error(w, "404 page not found", 404)
+		respondError(w, r, 404, "page not found")
 		return
 	}
 
 	if r.Body == nil {
-		http.Error(w, makeResponse("error", "please send a request body"), 400)
+		respondError(w, r, 400, "request body missing")
 		return
 	}
 	var msg DispatchRequest
 	err := json.NewDecoder(r.Body).Decode(&msg)
 	if err != nil {
-		http.Error(w, makeResponse("error", "message format: %v", err), 400)
+		respondError(w, r, 400, "message format: %v", err)
 		return
 	}
 
 	if len(msg.AuthToken) == 0 {
-		http.Error(w, makeResponse("error", "field 'auth-token' missing or incomplete"), 400)
+		respondError(w, r, 400, "field 'auth-token' missing")
 		return
 	}
 
 	err = dispatch.Send(msg)
 	if err != nil {
-		http.Error(w, makeResponse("error", "%v", err), 400)
+		respondError(w, r, 400, "%v", err)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(makeResponse("success", "")))
+	respondSuccess(w, r)
 }
 
-func makeResponse(status string, message string, a ...interface{}) string {
-	if len(message) == 0 {
-		return fmt.Sprintf("{\"status\": \"%s\"}", status)
+func defaultAction(w http.ResponseWriter, r *http.Request) {
+	respondError(w, r, 404, "page not found")
+}
+
+func respondError(w http.ResponseWriter, r *http.Request, code int, message string, a ...interface{}) {
+	var msg string
+	if r.Header.Get("Content-Type") == "application/json" {
+		m := fmt.Sprintf(message, a...)
+		msg = fmt.Sprintf("{\"status\": \"error\", \"message\": \"%s\"}", m)
+		w.Header().Add("Content-Type", "application/json")
+	} else { // default is text response
+		m := fmt.Sprintf(message, a...)
+		msg = fmt.Sprintf("%d %s", code, m)
+		w.Header().Add("Content-Type", "text/plain")
 	}
-	msg := fmt.Sprintf(message, a...)
-	return fmt.Sprintf("{\"status\": \"%s\", \"message\": \"%s\"}", status, msg)
+
+	w.WriteHeader(code)
+	w.Write([]byte(msg))
+}
+
+func respondSuccess(w http.ResponseWriter, r *http.Request) {
+	var msg string
+	if r.Header.Get("Content-Type") == "application/json" {
+		msg = "{\"status\": \"success\"}"
+		w.Header().Add("Content-Type", "application/json")
+	} else { // default is text response
+		msg = "200 success"
+		w.Header().Add("Content-Type", "text/plain")
+	}
+
+	w.WriteHeader(200)
+	w.Write([]byte(msg))
 }
