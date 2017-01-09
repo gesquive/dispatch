@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -18,7 +17,7 @@ import (
 	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 )
 
-var version = "v0.2.0"
+var version = "v0.3.0"
 var dirty = ""
 
 var cfgFile string
@@ -43,7 +42,7 @@ func main() {
 var RootCmd = &cobra.Command{
 	Use:   "dispatch",
 	Short: "A mail forwarding API service",
-	Long:  `This app provides an json-api for sending email`,
+	Long:  `Run a webserver that provides an json api for emails`,
 	Run:   run,
 }
 
@@ -158,10 +157,8 @@ func run(cmd *cobra.Command, args []string) {
 
 	if debug {
 		log.SetLevel(log.DebugLevel)
-		gin.SetMode(gin.DebugMode)
 	} else {
 		log.SetLevel(log.InfoLevel)
-		gin.SetMode(gin.ReleaseMode)
 	}
 
 	logPath = path.Dir(viper.GetString("log_path"))

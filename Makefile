@@ -4,7 +4,6 @@
 #  The kickoff point for all project management commands.
 #
 
-# TODO: Add service install
 GOCC := go
 
 # Program version
@@ -51,7 +50,7 @@ build: ## Compile the project
 	${GOCC} build -ldflags "-X main.version=${VERSION} -X main.dirty=${GIT_DIRTY}" -o ${BIN_NAME}
 
 .PHONY: install
-install: build ## Install binary
+install: build ## Install the binary
 	install -d ${DESTDIR}/usr/local/bin/
 	install -m 755 ./${BIN_NAME} ${DESTDIR}/usr/local/bin/${BIN_NAME}
 

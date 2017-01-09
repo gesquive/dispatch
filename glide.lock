@@ -1,17 +1,14 @@
-hash: f266336e0fd5b27bf137365c26dabd54bb39412038843653054a66fa8d0b5ac8
-updated: 2016-12-16T16:07:52.995620281-06:00
+hash: 781c008e60eff00a8219d1e658afd69b2844dd297c228736d6f2ac18717f9467
+updated: 2017-01-09T14:51:46.429878459-06:00
 imports:
+- name: github.com/didip/tollbooth
+  version: 605330a2a1a74c6535f5a4d5e8ddab4e024015c4
+  subpackages:
+  - config
+  - errors
+  - libstring
 - name: github.com/fsnotify/fsnotify
   version: fd9ec7deca8bf46ecd2a795baaacf2b3a9be1197
-- name: github.com/gin-gonic/gin
-  version: e2212d40c62a98b388a5eb48ecbdcf88534688ba
-  subpackages:
-  - binding
-  - render
-- name: github.com/golang/protobuf
-  version: 2402d76f3d41f928c7902a765dfc872356dd3aad
-  subpackages:
-  - proto
 - name: github.com/hashicorp/hcl
   version: 80e628d796135357b3d2e33a985c666b9f35eee1
   subpackages:
@@ -27,10 +24,6 @@ imports:
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/magiconair/properties
   version: 9c47895dc1ce54302908ab8a43385d1f5df2c11c
-- name: github.com/manucorporat/sse
-  version: ee05b128a739a0fb76c7ebd3ae4810c1de808d6d
-- name: github.com/mattn/go-isatty
-  version: 30a891c33c7cde7b02a981314b4228ec99380cca
 - name: github.com/mgutz/ansi
   version: c286dcecd19ff979eeb73ea444e479b903f2cfcb
 - name: github.com/mitchellh/mapstructure
@@ -70,12 +63,12 @@ imports:
   subpackages:
   - transform
   - unicode/norm
+- name: golang.org/x/time
+  version: f51c12702a4d776e4c1fa9b0fabab841babae631
+  subpackages:
+  - rate
 - name: gopkg.in/alexcesaro/quotedprintable.v3
   version: 2caba252f4dc53eaf6b553000885530023f54623
-- name: gopkg.in/gin-gonic/gin.v1
-  version: e2212d40c62a98b388a5eb48ecbdcf88534688ba
-- name: gopkg.in/go-playground/validator.v8
-  version: c193cecd124b5cc722d7ee5538e945bdb3348435
 - name: gopkg.in/gomail.v2
   version: 81ebce5c23dfd25c6c67194b37d3dd3f338c98b1
 - name: gopkg.in/yaml.v2
