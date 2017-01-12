@@ -92,7 +92,7 @@ type DispatchTarget struct {
 }
 
 func getTargetConfigList(targetDir string) (target []string, err error) {
-	pattern := fmt.Sprintf("%s/*.yml", targetDir)
+	pattern := fmt.Sprintf("%s/*", targetDir)
 	log.Debugf("searching %s", pattern)
 	matches, err := filepath.Glob(pattern)
 	if err != nil {

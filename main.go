@@ -65,7 +65,7 @@ func init() {
 	RootCmd.PersistentFlags().StringP("log-dir", "l", "",
 		"Path to log files (default \"/var/log/\")")
 	RootCmd.PersistentFlags().StringP("target-dir", "t", "",
-		"Path to target configs (default \"/etc/dispatch/targets.d\")")
+		"Path to target configs (default \"/etc/dispatch/targets-enabled\")")
 	RootCmd.PersistentFlags().BoolVar(&check, "check", false,
 		"Check the config for errors and exit")
 
@@ -118,7 +118,7 @@ func init() {
 	viper.BindPFlag("smtp.password", RootCmd.PersistentFlags().Lookup("smtp-password"))
 
 	viper.SetDefault("log_dir", "/var/log/")
-	viper.SetDefault("target_dir", "/etc/dispatch/targets.d")
+	viper.SetDefault("target_dir", "/etc/dispatch/targets-enabled")
 	viper.SetDefault("web.address", "0.0.0.0")
 	viper.SetDefault("web.port", 8080)
 	viper.SetDefault("rate-limit", "inf")
