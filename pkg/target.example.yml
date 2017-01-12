@@ -1,3 +1,6 @@
+# name is the unique name for this target (default value is the target filename)
+# name will show up in the subject of the email
+name: example
 # auth-token should be a unique random string of characters
 auth-token: f6uf9xvb@tze22O!KCZ7WExe
 # emails will be sent from

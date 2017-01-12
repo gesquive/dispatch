@@ -41,6 +41,9 @@ If you are planning to run this app as a service, it is recommended that you pla
 ### Targets
 Targets are defined as follows:
 ```yaml
+# name is the unique name for this target (default value is the target filename)
+# name will show up in the subject of the email
+name: example
 # auth-token should be a unique random string of characters
 auth-token: f6uf9xvb@tze22O!KCZ7WExe
 # emails will be sent from
@@ -49,13 +52,19 @@ from: dispatch@my-site.com
 to:
   - admin@my-site.com
   - personal@anywhere.com
+
 ```
 
-Targets should be named with the `.yml` extension and be placed in the directory defined by the `--target-dir` flag. By default this is `/etc/dispatch/targets.d`.
+Targets should be named with the `.yml` extension and be placed in the directory defined by the `--target-dir` flag. By default this is `/etc/dispatch/targets-enabled`.
 
 
 ### Environment Variables
 Optionally, instead of using a config file you can specify config entries as environment variables. Use the prefix "DISPATCH_" in front of the uppercased variable name. For example, the config variable `smtp-server` would be the environment variable `DISPATCH_SMTP_SERVER`.
+
+### Service
+This application was developed to run as a service behind a webserver such as nginx, apache, or caddy.
+
+You can use upstart, init, runit or any other service manager to run the `dispatch` executable. Example scripts for systemd and upstart can be found in the `pkg/services` directory. A logrotate script can also be found in the `pkg/services` directory. All of the configs assume the user to run as is named `dispatch`, make sure to change this if needed.
 
 ## Usage
 
@@ -69,15 +78,14 @@ Flags:
   -a, --address string         The IP address to bind the web server too (default "0.0.0.0")
       --check                  Check the config for errors and exit
       --config string          Path to a specific config file (default "./config.yml")
-      --log-path string        Path to log files (default "/var/log/")
+  -l, --log-dir string         Path to log files (default "/var/log/")
   -p, --port int               The port to bind the webserver too (default 8080)
-  -r, --rate-limit string      The rate limit at which to send emails in the format 'inf|<num>/<duration>'.
-                                 inf for infinite or 1/10s for 1 email per 10 seconds. (default "inf")
+  -r, --rate-limit string      The rate limit at which to send emails in the format 'inf|<num>/<duration>'. inf for infinite or 1/10s for 1 email per 10 seconds. (default "inf")
   -w, --smtp-password string   Authenticate the SMTP server with this password
   -o, --smtp-port uint32       The port to use for the SMTP server (default 25)
   -x, --smtp-server string     The SMTP server to send email through (default "localhost")
   -u, --smtp-username string   Authenticate the SMTP server with this user
-      --target-dir string      Path to target configs (default "/etc/dispatch/targets.d")
+  -t, --target-dir string      Path to target configs (default "/etc/dispatch/targets-enabled")
   -v, --verbose                Print logs to stdout instead of file
       --version                Display the version number and exit
 ```
@@ -88,10 +96,60 @@ Hidden Flags:
   -D, --debug                  Include debug statements in log output
 ```
 
-### Service
-This application was developed to run as a service behind a webserver such as nginx, apache, or caddy.
+## Examples
+To send an email using dispatch, simply send a JSON formatted POST request to the `/send` endpoint. The format is as follows:
+```json
+{
+    "auth-token": "",
+    "name": "",
+    "email": "",
+    "subject": "",
+    "message": "",
+}
+```
 
-You can use upstart, init, runit or any other service manager to run the `dispatch` executable. Example scripts for systemd and upstart can be found in the `pkg/services` directory. A logrotate script can also be found in the `pkg/services` directory. All of the configs assume the user to run as is named `dispatch`, make sure to change this if needed.
+`auth-token` is the only required field.
+
+### Javascript example
+```javascript
+$(document).ready(function() {
+
+    // process the form
+    $('form').submit(function(e) {
+
+        // get the form data
+        var formData = {
+            'name'          : $('input[name=name]').val(),
+            'email'         : $('input[name=email]').val(),
+            'subject'       : $('input[name=subject]').val(),
+            'message'       : $('textarea[name=message]').val(),
+            'auth-token'    : $('input[name=auth-token]').val()
+        };
+
+        // process the form
+        $.ajax({
+            type        : 'POST',
+            url         : '/send', // the url where we want to POST
+            data        : formData,
+            dataType    : 'json', // what type of data do we expect back from the server
+            encode      : true
+        })
+            .done(function(data) {
+                // here we handle a successful submission
+                console.log(data);
+            });
+
+        // stop the form from refreshing the page
+        e.preventDefault();
+    });
+
+});
+```
+
+### CURL example
+```shell
+curl -i -X POST -H "Content-Type: application/json" -d '{ "auth-token":"qasZ1z6HfVPRCq1D0GQUpVB8", "name":"anon", "email":"test@dispatch.com", "subject":"cmd email", "message":"Hello!"}' http://dispatch:7070/send
+```
 
 ## Documentation
 
