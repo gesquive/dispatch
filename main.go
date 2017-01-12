@@ -21,7 +21,6 @@ var version = "v0.3.0"
 var dirty = ""
 
 var cfgFile string
-var logPath string
 
 var displayVersion string
 var showVersion bool
@@ -63,9 +62,9 @@ func init() {
 
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "",
 		"Path to a specific config file (default \"./config.yml\")")
-	RootCmd.PersistentFlags().String("log-path", "",
+	RootCmd.PersistentFlags().StringP("log-dir", "l", "",
 		"Path to log files (default \"/var/log/\")")
-	RootCmd.PersistentFlags().String("target-dir", "",
+	RootCmd.PersistentFlags().StringP("target-dir", "t", "",
 		"Path to target configs (default \"/etc/dispatch/targets.d\")")
 	RootCmd.PersistentFlags().BoolVar(&check, "check", false,
 		"Check the config for errors and exit")
@@ -98,6 +97,8 @@ func init() {
 
 	viper.SetEnvPrefix("dispatch")
 	viper.AutomaticEnv()
+	viper.BindEnv("log_dir")
+	viper.BindEnv("target_dir")
 	viper.BindEnv("address")
 	viper.BindEnv("port")
 	viper.BindEnv("rate_limit")
@@ -106,7 +107,7 @@ func init() {
 	viper.BindEnv("smtp_username")
 	viper.BindEnv("smtp_password")
 
-	viper.BindPFlag("log_path", RootCmd.PersistentFlags().Lookup("log-path"))
+	viper.BindPFlag("log_dir", RootCmd.PersistentFlags().Lookup("log-dir"))
 	viper.BindPFlag("target_dir", RootCmd.PersistentFlags().Lookup("target-dir"))
 	viper.BindPFlag("web.address", RootCmd.PersistentFlags().Lookup("address"))
 	viper.BindPFlag("web.port", RootCmd.PersistentFlags().Lookup("port"))
@@ -116,7 +117,7 @@ func init() {
 	viper.BindPFlag("smtp.username", RootCmd.PersistentFlags().Lookup("smtp-username"))
 	viper.BindPFlag("smtp.password", RootCmd.PersistentFlags().Lookup("smtp-password"))
 
-	viper.SetDefault("log_path", "/var/log/")
+	viper.SetDefault("log_dir", "/var/log/")
 	viper.SetDefault("target_dir", "/etc/dispatch/targets.d")
 	viper.SetDefault("web.address", "0.0.0.0")
 	viper.SetDefault("web.port", 8080)
@@ -161,13 +162,13 @@ func run(cmd *cobra.Command, args []string) {
 		log.SetLevel(log.InfoLevel)
 	}
 
-	logPath = path.Dir(viper.GetString("log_path"))
-	logPath = fmt.Sprintf("%s/dispatch.log", logPath)
+	logPath := viper.GetString("log_dir")
+	logFilePath := path.Join(logPath, "dispatch.log")
 	if verbose {
 		log.SetOutput(os.Stdout)
-		log.Debugf("config: log_file=%s", logPath)
+		log.Debugf("config: log_dir=%s", logFilePath)
 	} else {
-		logFile, err := os.OpenFile(logPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		logFile, err := os.OpenFile(logFilePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 		if err != nil {
 			log.Fatalf("error opening log file=%v", err)
 		}
