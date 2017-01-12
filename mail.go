@@ -90,6 +90,7 @@ func sendMessage(message Message, smtp SMTPSettings) (success bool) {
 	if err := dialer.DialAndSend(msg); err != nil {
 		log.Error("An error occurred when sending email")
 		log.Error(err)
+		return false
 	}
 	success = true
 	return success
@@ -114,7 +115,7 @@ func formatEmail(address string) (string, error) {
 		return "", err
 	}
 
-	fAddress := ""
+	var fAddress string
 	if len(email.Name) > 0 {
 		fAddress = fmt.Sprintf("\"%s\" <%s>", email.Name, email.Address)
 	} else {

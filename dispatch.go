@@ -1,10 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"html/template"
 	"io/ioutil"
+	"path"
 	"path/filepath"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"gopkg.in/yaml.v2"
@@ -15,21 +19,38 @@ type DispatchMap map[string]DispatchTarget
 
 // DispatchRequest is the expected message submission
 type DispatchRequest struct {
-	AuthToken string `json:"auth-token" binding:"required"`
-	Message   string `json:"message"`
-	Subject   string `json:"subject"`
+	AuthToken string    `json:"auth-token" binding:"required"`
+	Message   string    `json:"message"`
+	Subject   string    `json:"subject"`
+	Name      string    `json:"name"`
+	Email     string    `json:"email"`
+	Time      time.Time `json:"-"`
 }
 
 // Dispatch is the central point for the dispatches
 type Dispatch struct {
-	dispatchMap  DispatchMap
-	smtpSettings SMTPSettings
+	dispatchMap     DispatchMap
+	smtpSettings    SMTPSettings
+	messageTemplate *template.Template
 }
 
 // NewDispatch create a new dispatch
 func NewDispatch(targetDir string, smtpSettings SMTPSettings) *Dispatch {
 	d := new(Dispatch)
 	d.dispatchMap = make(DispatchMap)
+	d.smtpSettings = smtpSettings
+	msg := `
+Dispatch message
+===========================================================
+Timestamp: {{.Time.Format "Jan 02, 2006 15:04:05 UTC"}}
+Name:      {{.Name}}
+Email:     {{.Email}}
+Subject:   {{.Subject}}
+-----------------------------------------------------------
+{{.Message}}
+`
+
+	d.messageTemplate = template.Must(template.New("request").Parse(msg))
 	d.LoadTargets(targetDir)
 	return d
 }
@@ -49,12 +70,12 @@ func (d *Dispatch) LoadTargets(targetDir string) {
 			log.Errorf("error: could not load %s: %v", target, err)
 			continue
 		}
-		targetConf := loadTarget(data)
+		targetConf := loadTarget(target, data)
 		d.dispatchMap[targetConf.AuthToken] = targetConf
 	}
 }
 
-// Send places the request in the queue
+// Send formats and sends the message
 func (d *Dispatch) Send(request DispatchRequest) error {
 	target, found := d.dispatchMap[request.AuthToken]
 	if !found {
@@ -65,16 +86,11 @@ func (d *Dispatch) Send(request DispatchRequest) error {
 	// if 'from' field is black, email package will fill in a default
 	email.FromAddress = target.From
 	email.ToAddressList = target.To
-	if len(target.SubjectPrefix) > 0 {
-		email.Subject = fmt.Sprintf("%s %s", target.SubjectPrefix, request.Subject)
-	} else {
-		email.Subject = request.Subject
-	}
-	if len(target.MessagePrefix) > 0 {
-		email.TextMessage = fmt.Sprintf("%s\n%s", target.MessagePrefix, request.Message)
-	} else {
-		email.TextMessage = request.Message
-	}
+	email.Subject = fmt.Sprintf("[dispatch] %s - %s", target.Name, request.Subject)
+
+	var msgBuffer bytes.Buffer
+	d.messageTemplate.Execute(&msgBuffer, request)
+	email.TextMessage = msgBuffer.String()
 
 	log.Debugf("sending message: %+v", email)
 	sendMessage(email, d.smtpSettings)
@@ -83,12 +99,10 @@ func (d *Dispatch) Send(request DispatchRequest) error {
 
 // DispatchTarget is a target to send too
 type DispatchTarget struct {
-	AuthToken     string   `yaml:"auth-token"`
-	From          string   `yaml:"from"`
-	To            []string `yaml:"to"`
-	SubjectPrefix string   `yaml:"subject-prefix"`
-	Subject       string   `yaml:"subject"`
-	MessagePrefix string   `yaml:"message-prefix"`
+	AuthToken string   `yaml:"auth-token"`
+	From      string   `yaml:"from"`
+	To        []string `yaml:"to"`
+	Name      string   `yaml:"name"`
 }
 
 func getTargetConfigList(targetDir string) (target []string, err error) {
@@ -102,11 +116,14 @@ func getTargetConfigList(targetDir string) (target []string, err error) {
 	return matches, nil
 }
 
-func loadTarget(data []byte) DispatchTarget {
+func loadTarget(target string, data []byte) DispatchTarget {
 	t := DispatchTarget{}
 	err := yaml.Unmarshal(data, &t)
 	if err != nil {
 		log.Errorf("error: parsing target: %v", err)
+	}
+	if len(t.Name) == 0 {
+		t.Name = path.Base(target)
 	}
 	log.Debugf("loaded target: %+v", t)
 	return t

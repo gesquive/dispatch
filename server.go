@@ -107,6 +107,7 @@ func LimitFuncHandler(limiter *config.Limiter, nextFunc func(http.ResponseWriter
 }
 
 func send(w http.ResponseWriter, r *http.Request) {
+	recvTime := time.Now()
 	if r.Method != "POST" {
 		respondError(w, r, 404, "page not found")
 		return
@@ -122,6 +123,7 @@ func send(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, 400, "message format: %v", err)
 		return
 	}
+	msg.Time = recvTime
 
 	if len(msg.AuthToken) == 0 {
 		respondError(w, r, 400, "field 'auth-token' missing")
