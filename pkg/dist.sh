@@ -35,6 +35,7 @@ cp -r "${SRC}" "${DST}"
 cp LICENSE "${DST}"
 cp README.md "${DST}"
 cp pkg/config.example.yml "${DST}"
+cp pkg/target.example.yml "${DST}"
 
 if [[ "${DST}" != *"windows"* ]]; then
     cp -R pkg/services "${DST}"

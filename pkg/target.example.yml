@@ -1,0 +1,8 @@
+# auth-token should be a unique random string of characters
+auth-token: f6uf9xvb@tze22O!KCZ7WExe
+# emails will be sent from
+from: dispatch@my-site.com
+# emails will be sent too
+to:
+  - admin@my-site.com
+  - personal@anywhere.com
