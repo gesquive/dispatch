@@ -79,7 +79,7 @@ func (d *Dispatch) LoadTargets(targetDir string) {
 func (d *Dispatch) Send(request DispatchRequest) error {
 	target, found := d.dispatchMap[request.AuthToken]
 	if !found {
-		return errors.New("auth-token not recognized")
+		return errors.New("authentication is not valid")
 	}
 
 	var email Message
