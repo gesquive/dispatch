@@ -99,7 +99,7 @@ func sendMessage(message Message, smtp SMTPSettings) (success bool) {
 func formatEmailList(list []string) ([]string, error) {
 	var formattedList []string
 	for _, r := range list {
-		formattedAddress, err := formatEmail(r)
+		formattedAddress, err := FormatEmail(r)
 		if err != nil {
 			return []string{},
 				fmt.Errorf("Could not parse address '%s': %v", r, err)
@@ -109,7 +109,8 @@ func formatEmailList(list []string) ([]string, error) {
 	return formattedList, nil
 }
 
-func formatEmail(address string) (string, error) {
+// FormatEmail validates and formats an email address string
+func FormatEmail(address string) (string, error) {
 	email, err := mail.ParseAddress(address)
 	if err != nil {
 		return "", err

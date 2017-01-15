@@ -130,6 +130,13 @@ func send(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	email, err := FormatEmail(msg.Email)
+	if err != nil {
+		respondError(w, r, 400, "email address is not valid")
+		return
+	}
+	msg.Email = email
+
 	err = dispatch.Send(msg)
 	if err != nil {
 		respondError(w, r, 400, "%v", err)
