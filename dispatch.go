@@ -93,7 +93,7 @@ func (d *Dispatch) Send(request DispatchRequest) error {
 	d.messageTemplate.Execute(&msgBuffer, request)
 	email.TextMessage = msgBuffer.String()
 
-	log.Debugf("sending message: %+v", email)
+	log.Infof("sending message: {AuthToken:%s Name:%s}", request.AuthToken, request.Name)
 	sendMessage(email, d.smtpSettings)
 	return nil
 }

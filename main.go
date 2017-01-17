@@ -176,7 +176,7 @@ func run(cmd *cobra.Command, args []string) {
 		log.SetOutput(logFile)
 	}
 
-	log.Debugf("config: file=%s", viper.ConfigFileUsed())
+	log.Infof("config: file=%s", viper.ConfigFileUsed())
 	if viper.ConfigFileUsed() == "" {
 		log.Fatal("No config file found.")
 	}
