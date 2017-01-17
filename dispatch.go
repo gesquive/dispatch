@@ -68,7 +68,10 @@ func (d *Dispatch) LoadTargets(targetDir string) {
 			log.Errorf("error: could not load %s: %v", target, err)
 			continue
 		}
-		targetConf := loadTarget(target, data)
+		targetConf, err := loadTarget(target, data)
+		if err != nil {
+			log.Errorf("error: parsing target %s: %v", target, err)
+		}
 		d.dispatchMap[targetConf.AuthToken] = targetConf
 	}
 }
@@ -114,15 +117,16 @@ func getTargetConfigList(targetDir string) (target []string, err error) {
 	return matches, nil
 }
 
-func loadTarget(target string, data []byte) DispatchTarget {
+func loadTarget(target string, data []byte) (DispatchTarget, error) {
 	t := DispatchTarget{}
 	err := yaml.Unmarshal(data, &t)
 	if err != nil {
-		log.Errorf("error: parsing target: %v", err)
+		return t, err
 	}
 	if len(t.Name) == 0 {
 		t.Name = path.Base(target)
 	}
-	log.Debugf("loaded target: %+v", t)
-	return t
+	log.Infof("loaded target %s:%s", t.Name, t.AuthToken)
+	log.Debugf("target=%+v", t)
+	return t, nil
 }
