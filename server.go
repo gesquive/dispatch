@@ -30,7 +30,7 @@ func NewServer(dispatch *Dispatch, limitMax int64, limitTTL time.Duration) *Serv
 		limiter.Methods = []string{"POST"}
 
 		// setup endpoints
-		http.Handle("/send", LimitFuncHandler(limiter, send))
+		http.Handle("/send", CORSHandler(LimitFuncHandler(limiter, send).(http.HandlerFunc)))
 	} else {
 
 		http.HandleFunc("/send", send)
@@ -99,6 +99,24 @@ func LimitHandler(limiter *config.Limiter, next http.Handler) http.Handler {
 	}
 
 	return http.HandlerFunc(middle)
+}
+
+// CORSHandler handles CORS responses & headers
+func CORSHandler(fn http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if origin := r.Header.Get("Origin"); origin != "" {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+		} else {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+		}
+		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token")
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+		if r.Method == "OPTIONS" {
+			return
+		}
+		fn(w, r)
+	}
 }
 
 // LimitFuncHandler is a middleware that performs rate-limiting given request handler function.
