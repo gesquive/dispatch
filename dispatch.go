@@ -71,8 +71,16 @@ func (d *Dispatch) LoadTargets(targetDir string) {
 		targetConf, err := loadTarget(target, data)
 		if err != nil {
 			log.Errorf("error: parsing target %s: %v", target, err)
+			continue
 		}
+
+		if len(targetConf.To) == 0 {
+			log.Errorf("error: target %s does not have a destination, skipping", targetConf.Name)
+			continue
+		}
+
 		d.dispatchMap[targetConf.AuthToken] = targetConf
+		log.Infof("loaded target %s:%s", targetConf.Name, targetConf.AuthToken)
 	}
 }
 
@@ -126,7 +134,19 @@ func loadTarget(target string, data []byte) (DispatchTarget, error) {
 	if len(t.Name) == 0 {
 		t.Name = path.Base(target)
 	}
-	log.Infof("loaded target %s:%s", t.Name, t.AuthToken)
+
+	oldTo := make([]string, len(t.To))
+	copy(oldTo, t.To)
+	t.To = t.To[:0] // Clear our slice
+	for _, addr := range oldTo {
+		fAddr, err := FormatEmail(addr)
+		if err != nil {
+			log.Errorf("error parsing email '%s', skipping", addr)
+			continue
+		}
+		t.To = append(t.To, fAddr)
+	}
+
 	log.Debugf("target=%+v", t)
 	return t, nil
 }
