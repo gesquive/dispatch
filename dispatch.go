@@ -40,8 +40,6 @@ func NewDispatch(targetDir string, smtpSettings SMTPSettings) *Dispatch {
 	d.dispatchMap = make(DispatchMap)
 	d.smtpSettings = smtpSettings
 	msg := `
-Dispatch message
-===========================================================
 Timestamp: {{.Time.Format "Jan 02, 2006 15:04:05 UTC"}}
 Name:      {{.Name}}
 Email:     {{.Email}}
