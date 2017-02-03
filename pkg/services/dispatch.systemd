@@ -17,8 +17,8 @@ Wants=network-online.target
 After=network-online.target
 
 [Service]
-ExecStartPre=/opt/dispatch/dispatch --check
-ExecStart=/opt/dispatch/dispatch
+ExecStartPre=/usr/local/bin/dispatch --check
+ExecStart=/usr/local/bin/dispatch
 User=dispatch
 Group=dispatch
 Type=simple

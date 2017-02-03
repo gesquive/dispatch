@@ -14,12 +14,12 @@ script
 
     export HOME="/srv"
     echo $$ > /var/run/dispatch.pid
-    exec /opt/dispatch/dispatch
+    exec /usr/local/bin/dispatch
 
 end script
 
 pre-start script
-    /opt/dispatch/dispatch --check
+    /usr/local/bin/dispatch --check
     echo "[`date '+%FT%TZ'`] starting service" >> /var/log/dispatch.log
 end script
 
