@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"strings"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -76,6 +77,10 @@ func WriteLogHandler(handler http.Handler) http.Handler {
 		latency := time.Since(t)
 
 		clientIP := r.RemoteAddr
+		proxyList := splitIPList(r.Header.Get("X-Forwarded-For"))
+		if len(proxyList) > 0 {
+			clientIP = proxyList[0]
+		}
 		statusCode := writer.statusCode
 		path := r.URL.Path
 		method := r.Method
@@ -178,4 +183,13 @@ func respondSuccess(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(200)
 	w.Write([]byte(msg))
+}
+
+func splitIPList(ipList string) []string {
+	ips := strings.Split(ipList, ", ")
+	list := make([]string, len(ips))
+	for i, ip := range ips {
+		list[i] = ip
+	}
+	return list
 }
