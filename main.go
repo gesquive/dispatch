@@ -62,8 +62,8 @@ func init() {
 
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "",
 		"Path to a specific config file (default \"./config.yml\")")
-	RootCmd.PersistentFlags().StringP("log-dir", "l", "",
-		"Path to log files (default \"/var/log/\")")
+	RootCmd.PersistentFlags().StringP("log-file", "l", "",
+		"Path to log file (default \"/var/log/dispatch.log\")")
 	RootCmd.PersistentFlags().StringP("target-dir", "t", "",
 		"Path to target configs (default \"/etc/dispatch/targets-enabled\")")
 	RootCmd.PersistentFlags().BoolVar(&check, "check", false,
@@ -97,7 +97,7 @@ func init() {
 
 	viper.SetEnvPrefix("dispatch")
 	viper.AutomaticEnv()
-	viper.BindEnv("log_dir")
+	viper.BindEnv("log_file")
 	viper.BindEnv("target_dir")
 	viper.BindEnv("address")
 	viper.BindEnv("port")
@@ -107,7 +107,7 @@ func init() {
 	viper.BindEnv("smtp_username")
 	viper.BindEnv("smtp_password")
 
-	viper.BindPFlag("log_dir", RootCmd.PersistentFlags().Lookup("log-dir"))
+	viper.BindPFlag("log_file", RootCmd.PersistentFlags().Lookup("log-file"))
 	viper.BindPFlag("target_dir", RootCmd.PersistentFlags().Lookup("target-dir"))
 	viper.BindPFlag("web.address", RootCmd.PersistentFlags().Lookup("address"))
 	viper.BindPFlag("web.port", RootCmd.PersistentFlags().Lookup("port"))
@@ -117,7 +117,7 @@ func init() {
 	viper.BindPFlag("smtp.username", RootCmd.PersistentFlags().Lookup("smtp-username"))
 	viper.BindPFlag("smtp.password", RootCmd.PersistentFlags().Lookup("smtp-password"))
 
-	viper.SetDefault("log_dir", "/var/log/")
+	viper.SetDefault("log_file", "/var/log/dispatch.log")
 	viper.SetDefault("target_dir", "/etc/dispatch/targets-enabled")
 	viper.SetDefault("web.address", "0.0.0.0")
 	viper.SetDefault("web.port", 8080)
@@ -162,11 +162,10 @@ func run(cmd *cobra.Command, args []string) {
 		log.SetLevel(log.InfoLevel)
 	}
 
-	logPath := viper.GetString("log_dir")
-	logFilePath := path.Join(logPath, "dispatch.log")
+	logFilePath := getLogFilePath(viper.GetString("log_file"))
+	log.Debugf("config: log_file=%s", logFilePath)
 	if verbose {
 		log.SetOutput(os.Stdout)
-		log.Debugf("config: log_dir=%s", logFilePath)
 	} else {
 		logFile, err := os.OpenFile(logFilePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 		if err != nil {
@@ -234,6 +233,16 @@ func getRateLimit(rateLimit string) (limitMax int64, limitTTL time.Duration, err
 	limitTTL, err = time.ParseDuration(parts[1])
 	if err != nil {
 		return
+	}
+	return
+}
+
+func getLogFilePath(defaultPath string) (logPath string) {
+	fi, err := os.Stat(defaultPath)
+	if err == nil && fi.IsDir() {
+		logPath = path.Join(defaultPath, "dispatch.log")
+	} else {
+		logPath = defaultPath
 	}
 	return
 }

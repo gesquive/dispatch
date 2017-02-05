@@ -78,7 +78,7 @@ Flags:
   -a, --address string         The IP address to bind the web server too (default "0.0.0.0")
       --check                  Check the config for errors and exit
       --config string          Path to a specific config file (default "./config.yml")
-  -l, --log-dir string         Path to log files (default "/var/log/")
+  -l, --log-file string        Path to log file (default "/var/log/dispatch.log")
   -p, --port int               The port to bind the webserver too (default 8080)
   -r, --rate-limit string      The rate limit at which to send emails in the format 'inf|<num>/<duration>'. inf for infinite or 1/10s for 1 email per 10 seconds. (default "inf")
   -w, --smtp-password string   Authenticate the SMTP server with this password
