@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -76,11 +77,7 @@ func WriteLogHandler(handler http.Handler) http.Handler {
 		handler.ServeHTTP(&writer, r)
 		latency := time.Since(t)
 
-		clientIP := r.RemoteAddr
-		proxyList := splitIPList(r.Header.Get("X-Forwarded-For"))
-		if len(proxyList) > 0 {
-			clientIP = proxyList[0]
-		}
+		clientIP := getClientIP(r)
 		statusCode := writer.statusCode
 		path := r.URL.Path
 		method := r.Method
@@ -187,9 +184,29 @@ func respondSuccess(w http.ResponseWriter, r *http.Request) {
 
 func splitIPList(ipList string) []string {
 	ips := strings.Split(ipList, ", ")
-	list := make([]string, len(ips))
-	for i, ip := range ips {
-		list[i] = ip
+	var list []string
+	for _, ip := range ips {
+		ip = strings.TrimSpace(ip)
+		if len(ip) > 0 {
+			list = append(list, ip)
+		}
 	}
 	return list
+}
+
+func getClientIP(r *http.Request) string {
+	// first, figure out the correct IP to use
+	clientHostPort := r.RemoteAddr
+	proxyList := splitIPList(r.Header.Get("X-Forwarded-For"))
+	if len(proxyList) > 0 {
+		clientHostPort = proxyList[0]
+	}
+
+	// clean it up
+	clientIP, _, err := net.SplitHostPort(clientHostPort)
+	if err != nil {
+		clientIP = clientHostPort
+	}
+
+	return clientIP
 }
