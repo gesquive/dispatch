@@ -1,6 +1,6 @@
 # dispatch
 [![Travis CI](https://img.shields.io/travis/gesquive/dispatch/master.svg?style=flat-square)](https://travis-ci.org/gesquive/dispatch)
-[![Software License](https://img.shields.io/badge/License-MIT-orange.svg?style=flat-square)](https://github.com/gesquive/dispatch/blob/master/LICENSE.md)
+[![Software License](https://img.shields.io/badge/License-MIT-orange.svg?style=flat-square)](https://github.com/gesquive/dispatch/blob/master/LICENSE)
 [![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](https://godoc.org/github.com/gesquive/dispatch)
 
 A self-hosted mail forwarding web API server.
