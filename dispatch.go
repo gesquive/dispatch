@@ -8,8 +8,8 @@ import (
 	"io/ioutil"
 	"path"
 	"path/filepath"
-	"time"
 
+	"github.com/Masterminds/sprig"
 	log "github.com/Sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
@@ -18,14 +18,7 @@ import (
 type DispatchMap map[string]DispatchTarget
 
 // DispatchRequest is the expected message submission
-type DispatchRequest struct {
-	AuthToken string    `json:"auth-token" binding:"required"`
-	Message   string    `json:"message"`
-	Subject   string    `json:"subject"`
-	Name      string    `json:"name"`
-	Email     string    `json:"email"`
-	Time      time.Time `json:"-"`
-}
+type DispatchRequest map[string]string
 
 // Dispatch is the central point for the dispatches
 type Dispatch struct {
@@ -40,15 +33,16 @@ func NewDispatch(targetDir string, smtpSettings SMTPSettings) *Dispatch {
 	d.dispatchMap = make(DispatchMap)
 	d.smtpSettings = smtpSettings
 	msg := `
-Timestamp: {{.Time.Format "Jan 02, 2006 15:04:05 UTC"}}
-Name:      {{.Name}}
-Email:     {{.Email}}
-Subject:   {{.Subject}}
+{{ printf "%-12s" "Timestamp:"}}{{ index . "timestamp" }}
+{{ range $key, $value := . -}}
+{{ if eq $key "message" "auth-token" "timestamp" }}{{ else -}}
+{{title $key | printf "%s:" | printf "%-12s"}}{{$value}}
+{{ end }}{{ end -}}
 -----------------------------------------------------------
-{{.Message}}
+{{ index . "message"}}
 `
 
-	d.messageTemplate = template.Must(template.New("request").Parse(msg))
+	d.messageTemplate = template.Must(template.New("request").Funcs(sprig.FuncMap()).Parse(msg))
 	d.LoadTargets(targetDir)
 	return d
 }
@@ -86,7 +80,7 @@ func (d *Dispatch) LoadTargets(targetDir string) {
 
 // Send formats and sends the message
 func (d *Dispatch) Send(request DispatchRequest) error {
-	target, found := d.dispatchMap[request.AuthToken]
+	target, found := d.dispatchMap[request["auth-token"]]
 	if !found {
 		return errors.New("authentication is not valid")
 	}
@@ -95,13 +89,13 @@ func (d *Dispatch) Send(request DispatchRequest) error {
 	// if 'from' field is black, email package will fill in a default
 	email.FromAddress = target.From
 	email.ToAddressList = target.To
-	email.Subject = fmt.Sprintf("[dispatch] %s - %s", target.Name, request.Subject)
+	email.Subject = fmt.Sprintf("[dispatch] %s - %s", target.Name, request["subject"])
 
 	var msgBuffer bytes.Buffer
 	d.messageTemplate.Execute(&msgBuffer, request)
 	email.TextMessage = msgBuffer.String()
 
-	log.Infof("sending message: {AuthToken:%s Name:%s}", request.AuthToken, request.Name)
+	log.Infof("sending message: {AuthToken:%s Name:%s}", request["auth-token"], request["name"])
 	sendMessage(email, d.smtpSettings)
 	return nil
 }

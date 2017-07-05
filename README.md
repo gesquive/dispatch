@@ -111,7 +111,7 @@ To send an email using dispatch, simply send a JSON formatted POST request to th
 }
 ```
 
-`auth-token` is the only required field.
+`auth-token` is the only required field. dispatch also checks to see if the `email` field is a valid email address.
 
 ### Javascript example
 ```javascript

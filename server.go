@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"math"
 	"net"
 	"net/http"
@@ -119,25 +120,39 @@ func send(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, 400, "request body missing")
 		return
 	}
-	var msg DispatchRequest
-	err := json.NewDecoder(r.Body).Decode(&msg)
+
+	msg := DispatchRequest{}
+	defer r.Body.Close()
+	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		respondError(w, r, 400, "message format: %v", err)
 		return
 	}
-	msg.Time = recvTime
 
-	if len(msg.AuthToken) == 0 {
+	err = json.Unmarshal(body, &msg)
+	if err != nil {
+		respondError(w, r, 400, "message format: %v", err)
+		return
+	}
+
+	request := DispatchRequest{}
+	for key, val := range msg {
+		request[strings.ToLower(key)] = val
+	}
+	msg = request
+	msg["timestamp"] = recvTime.Format("Jan 02, 2006 15:04:05 UTC")
+
+	if _, ok := msg["auth-token"]; !ok {
 		respondError(w, r, 400, "field 'auth-token' missing")
 		return
 	}
 
-	email, err := FormatEmail(msg.Email)
+	email, err := FormatEmail(msg["email"])
 	if err != nil {
 		respondError(w, r, 400, "email address is not valid")
 		return
 	}
-	msg.Email = email
+	msg["email"] = email
 
 	err = dispatch.Send(msg)
 	if err != nil {
