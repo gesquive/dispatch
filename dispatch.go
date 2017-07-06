@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 
 	"github.com/Masterminds/sprig"
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
 

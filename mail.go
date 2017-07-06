@@ -10,7 +10,7 @@ import (
 
 	gomail "gopkg.in/gomail.v2"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // Message defines a message to send
