@@ -10,7 +10,7 @@ This program was created to provide a json-based email API for static sites. You
 ## Installing
 
 ### Compile
-This project has been tested with go1.7+. Just run `go get -u github.com/gesquive/dispatch` and the executable should be built for you automatically in your `$GOPATH`.
+This project has been tested with go1.9+. Just run `go get -u github.com/gesquive/dispatch` and the executable should be built for you automatically in your `$GOPATH`.
 
 Optionally you can clone the repo and run `make install` to build and copy the executable to `/usr/local/bin/` with correct permissions.
 
@@ -60,6 +60,8 @@ to:
 
 Targets should be named with the `.yml` extension and be placed in the directory defined by the `--target-dir` flag. By default this is `/etc/dispatch/targets-enabled`.
 
+#### Target Auth Tokens
+Each target requires a unique Auth token so incoming messages can be routed to the correct target. Auth tokens can be provided by including them in the json as `auth-token` or by passing in the value as a the HTTP header `X-Auth-Token`.
 
 ### Environment Variables
 Optionally, instead of using a config file you can specify config entries as environment variables. Use the prefix "DISPATCH_" in front of the uppercased variable name. For example, the config variable `smtp-server` would be the environment variable `DISPATCH_SMTP_SERVER`.
@@ -111,7 +113,7 @@ To send an email using dispatch, simply send a JSON formatted POST request to th
 }
 ```
 
-`auth-token` is the only required field. dispatch also checks to see if the `email` field is a valid email address.
+`auth-token` is the only required field. If not provided in the json as `auth-token` it must be passed through the HTTP Header `X-Auth-Token`. dispatch also checks to see if the `email` field is a valid email address.
 
 ### Javascript example
 ```javascript

@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/didip/tollbooth"
 	"github.com/didip/tollbooth/config"
+	log "github.com/sirupsen/logrus"
 )
 
 // Server is the dispatch server
@@ -142,8 +142,12 @@ func send(w http.ResponseWriter, r *http.Request) {
 	msg = request
 	msg["timestamp"] = recvTime.Format("Jan 02, 2006 15:04:05 UTC")
 
+	if headerToken := r.Header.Get("X-Auth-Token"); headerToken != "" {
+		msg["auth-token"] = headerToken
+	}
+
 	if _, ok := msg["auth-token"]; !ok {
-		respondError(w, r, 400, "field 'auth-token' missing")
+		respondError(w, r, 400, "'auth-token' missing")
 		return
 	}
 
