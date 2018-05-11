@@ -33,6 +33,10 @@ GIT_DIRTY=$(shell test -n "`git status --porcelain`" && echo "+CHANGES" || true)
 # GOPATH=$(PWD)
 
 INSTALL_PATH=$(GOPATH)/src/${REPO_HOST_URL}/${OWNER}/${PROJECT_NAME}
+LOCAL_BIN=bin
+GOTEMP:=$(shell mktemp -d)
+
+export PATH := ${LOCAL_BIN}:${PATH}
 
 default: test build
 
@@ -58,37 +62,41 @@ deps: glide ## Download project dependencies
 	glide install
 
 .PHONY: test
-test: glide ## Run golang tests
-	${GOCC} test $(shell glide novendor)
+test: ## Run golang tests
+	${GOCC} test ./...
 
 .PHONY: bench
 bench: glide ## Run golang benchmarks
-	${GOCC} test -benchmem -bench=. $(shell glide novendor)
+	${GOCC} test -benchmem -bench=. ./...
 
 .PHONY: clean
 clean: ## Clean the directory tree
 	${GOCC} clean
 	rm -f ./${BIN_NAME}.test
 	rm -f ./${BIN_NAME}
+	rm -rf ./${LOCAL_BIN}
 	rm -rf ./dist
 
-.PHONY: build-all
-build-all: gox
+.PHONY: build-dist
+build-dist: gox
 	gox -verbose \
 	-ldflags "-X main.version=${VERSION} -X main.dirty=${GIT_DIRTY}" \
 	-os="linux darwin windows" \
 	-arch="amd64 386" \
 	-output="dist/{{.OS}}-{{.Arch}}/{{.Dir}}" .
 
+.PHONY: package-dist
+package-dist: gop
+	gop --delete \
+	--os="linux darwin windows" \
+	--arch="amd64 386" \
+	--archive="tar.gz" \
+	--files="LICENSE README.md pkg" \
+	--input="dist/{{.OS}}-{{.Arch}}/{{.Dir}}" \
+	--output="dist/{{.Dir}}-${VERSION}-{{.OS}}-{{.Arch}}.{{.Archive}}" .
+
 .PHONY: dist
-dist: build-all ## Cross compile the full distribution
-	pkg/dist.sh "linux-386" "${PROJECT_NAME}-${VERSION}-linux-x32"
-	pkg/dist.sh "linux-amd64" "${PROJECT_NAME}-${VERSION}-linux-x64"
-	pkg/dist.sh "darwin-386" "${PROJECT_NAME}-${VERSION}-osx-x32"
-	pkg/dist.sh "darwin-amd64" "${PROJECT_NAME}-${VERSION}-osx-x64"
-	pkg/dist.sh "windows-386" "${PROJECT_NAME}-${VERSION}-windows-x32"
-	pkg/dist.sh "windows-amd64" "${PROJECT_NAME}-${VERSION}-windows-x64"
-	cd dist && find . -mindepth 1 -maxdepth 1 -type d -exec rm -rf "{}" \;
+dist: build-dist package-dist ## Cross compile and package the full distribution
 
 .PHONY: fmt
 fmt: ## Reformat the source tree with gofmt
@@ -100,12 +108,32 @@ $(INSTALL_PATH):
 	@mkdir -p `dirname $(INSTALL_PATH)`
 	@ln -s $(PWD) $(INSTALL_PATH) >/dev/null 2>&1
 
+${LOCAL_BIN}:
+	@mkdir -p ${LOCAL_BIN}
+
 .PHONY: glide
-glide:
-	@command -v glide >/dev/null 2>&1 || \
-	echo "Installing glide" && ${GOCC} get -u github.com/Masterminds/glide
+glide: bin/glide
+bin/glide: ${LOCAL_BIN}
+	@echo "Installing glide"
+	@export GOPATH=${GOTEMP} && ${GOCC} get -u github.com/Masterminds/glide
+	@cp ${GOTEMP}/bin/glide ${LOCAL_BIN}
+	@glide --version
+	@rm -rf ${GOTEMP}
 
 .PHONY: gox
-gox:
-	@command -v gox >/dev/null 2>&1 || \
-	echo "Installing gox" && ${GOCC} get -u github.com/mitchellh/gox
+gox: bin/gox
+bin/gox: ${LOCAL_BIN}
+	@echo "Installing gox"
+	@GOPATH=${GOTEMP} ${GOCC} get -u github.com/mitchellh/gox
+	@cp ${GOTEMP}/bin/gox ${LOCAL_BIN}/gox
+	@rm -rf ${GOTEMP}
+
+.PHONY: gop
+gop: bin/gop
+bin/gop: ${LOCAL_BIN}
+	@echo "Installing gop"
+	@export GOPATH=${GOTEMP} && ${GOCC} get -u github.com/gesquive/gop
+	@cp ${GOTEMP}/bin/gop ${LOCAL_BIN}
+	@gop --version
+	@rm -rf ${GOTEMP}
+

@@ -1,5 +1,5 @@
-hash: 66495c1e9d9c619d91e689d7fc4db039d590ac49dad47a9a25bcce9f01481199
-updated: 2017-07-06T00:01:41.245656448-05:00
+hash: 28be31ea367189fa4967b8edb1c2345eeb39f5ef452c68642062f24e847c21c8
+updated: 2018-05-11T17:25:59.183862226Z
 imports:
 - name: github.com/aokoli/goutils
   version: 3391d3790d23d03408670993e957e8f408993c34
@@ -25,7 +25,7 @@ imports:
 - name: github.com/huandu/xstrings
   version: 3959339b333561bf62a38b424fd41517c2c90f40
 - name: github.com/imdario/mergo
-  version: 3e95a51e0639b4cf372f2ccf74c86749d747fbdc
+  version: 7fe0c75c13abdee74b09fcacef5ea1c6bba6a874
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/magiconair/properties
@@ -47,9 +47,9 @@ imports:
 - name: github.com/pelletier/go-toml
   version: 69d355db5304c0f7f809a2edc054553e7142f016
 - name: github.com/satori/go.uuid
-  version: 879c5887cd475cd7864858769793b2ceb0d44feb
+  version: f58768cc1a7a7e77a3bd49e98cdd21419399b6a3
 - name: github.com/sirupsen/logrus
-  version: 202f25545ea4cf9b191ff7f846df5d87c9382c2b
+  version: c155da19408a8799da419ed3eeb0cb5db0ad5dbc
 - name: github.com/spf13/afero
   version: 9be650865eab0c12963d8753212f4f9c66cdcf12
   subpackages:
@@ -65,12 +65,13 @@ imports:
 - name: github.com/spf13/viper
   version: c1de95864d73a5465492829d7cb2dd422b19ac96
 - name: github.com/x-cray/logrus-prefixed-formatter
-  version: 0b2c791a02f18788b281dc30e243a0632dad695b
+  version: bb2702d423886830dee131692131d35648c382e2
 - name: golang.org/x/crypto
   version: b286ef4198388fdb0e4ae62be12820df5da9b4c2
   subpackages:
   - pbkdf2
   - scrypt
+  - ssh/terminal
 - name: golang.org/x/net
   version: 054b33e6527139ad5b1ec2f6232c3b175bd9a30c
   subpackages:
