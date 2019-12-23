@@ -1,5 +1,5 @@
-hash: 28be31ea367189fa4967b8edb1c2345eeb39f5ef452c68642062f24e847c21c8
-updated: 2018-05-11T17:25:59.183862226Z
+hash: ec0f6f9f0aad20d43cc45f7c0279d8d5c004545b1280d962944a38774477b05e
+updated: 2018-10-17T21:29:05.720444878Z
 imports:
 - name: github.com/aokoli/goutils
   version: 3391d3790d23d03408670993e957e8f408993c34
@@ -49,7 +49,7 @@ imports:
 - name: github.com/satori/go.uuid
   version: f58768cc1a7a7e77a3bd49e98cdd21419399b6a3
 - name: github.com/sirupsen/logrus
-  version: c155da19408a8799da419ed3eeb0cb5db0ad5dbc
+  version: 3e01752db0189b9157070a0e1668a620f9a85da2
 - name: github.com/spf13/afero
   version: 9be650865eab0c12963d8753212f4f9c66cdcf12
   subpackages:
@@ -64,6 +64,10 @@ imports:
   version: e57e3eeb33f795204c1ca35f56c44f83227c6e66
 - name: github.com/spf13/viper
   version: c1de95864d73a5465492829d7cb2dd422b19ac96
+- name: github.com/stretchr/testify
+  version: f35b8ab0b5a2cef36673838d662e249dd9c94686
+  subpackages:
+  - assert
 - name: github.com/x-cray/logrus-prefixed-formatter
   version: bb2702d423886830dee131692131d35648c382e2
 - name: golang.org/x/crypto
@@ -95,4 +99,12 @@ imports:
   version: 81ebce5c23dfd25c6c67194b37d3dd3f338c98b1
 - name: gopkg.in/yaml.v2
   version: cd8b52f8269e0feb286dfeef29f8fe4d5b397e0b
-testImports: []
+testImports:
+- name: github.com/davecgh/go-spew
+  version: d8f796af33cc11cb798c1aaeb27a4ebc5099927d
+  subpackages:
+  - spew
+- name: github.com/pmezard/go-difflib
+  version: 792786c7400a136282c1664665ae0a8db921c6c2
+  subpackages:
+  - difflib

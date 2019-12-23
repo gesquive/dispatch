@@ -56,15 +56,33 @@ to:
   - admin@my-site.com
   - personal@anywhere.com
 
+defaults:
+  subject: "site message"
+  tag: "no-tag"
+
 ```
 
 Targets should be named with the `.yml` extension and be placed in the directory defined by the `--target-dir` flag. By default this is `/etc/dispatch/targets-enabled`.
 
 #### Target Auth Tokens
-Each target requires a unique Auth token so incoming messages can be routed to the correct target. Auth tokens can be provided by including them in the json as `auth-token` or by passing in the value as a the HTTP header `X-Auth-Token`.
+Each target requires a unique Auth token so incoming messages can be routed to the correct target. Without a unique auth tokens, messages will be routed incorrectly.
+
+#### Target Defaults
+Any key-values specified under the `defaults` variable will be used as the default for all incoming requests. Any values specified in either the payload or header will overwrite these values
+
+#### Request HTTP Headers
+It is possible to specify a value for a request in the HTTP headers. Values specified in an HTTP header will always overwrite values specified through json. To specify a value through HTTP headers use the prefix `X-Dispatch-` with the variable name. For example, if you wanted to specify the `auth-token` through a HTTP header, simply post the json with the header `X-Dispatch-Auth-Token`
+
+#### Request Precedence Order
+Values for requests can be specified through an http request, request header or target default. The application takes values in the following order:
+ - request header
+ - request payload
+ - target default
+
+ So a variable value specified in an http request header will always override a value specified in the payload of an http request.
 
 ### Environment Variables
-Optionally, instead of using a config file you can specify config entries as environment variables. Use the prefix "DISPATCH_" in front of the uppercased variable name. For example, the config variable `smtp-server` would be the environment variable `DISPATCH_SMTP_SERVER`.
+Optionally, instead of using a config file you can specify config entries as environment variables. Use the prefix `DISPATCH_` in front of the uppercased variable name. For example, the config variable `smtp-server` would be the environment variable `DISPATCH_SMTP_SERVER`.
 
 ### Service
 This application was developed to run as a service behind a webserver such as nginx, apache, or caddy.
@@ -113,7 +131,7 @@ To send an email using dispatch, simply send a JSON formatted POST request to th
 }
 ```
 
-`auth-token` is the only required field. If not provided in the json as `auth-token` it must be passed through the HTTP Header `X-Auth-Token`. dispatch also checks to see if the `email` field is a valid email address.
+`auth-token` is the only required field. If not provided in the json as `auth-token` it must be passed through the HTTP Header `X-Dispatch-Auth-Token`. dispatch also checks to see if the `email` field is a valid email address.
 
 ### Javascript example
 ```javascript
@@ -153,7 +171,7 @@ $(document).ready(function() {
 
 ### CURL example
 ```shell
-curl -i -X POST -H "Content-Type: application/json" -d '{ "auth-token":"qasZ1z6HfVPRCq1D0GQUpVB8", "name":"anon", "email":"test@dispatch.com", "subject":"cmd email", "message":"Hello!"}' http://dispatch:7070/send
+curl -i -X POST -H "Content-Type: application/json" -H "X-Dispatch-Subject: cmd email" -d '{ "auth-token":"qasZ1z6HfVPRCq1D0GQUpVB8", "name":"anon", "email":"test@dispatch.com", "message":"Hello!"}' http://dispatch:7070/send
 ```
 
 ## Documentation

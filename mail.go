@@ -43,9 +43,9 @@ func sendMessage(message Message, smtp SMTPSettings) (success bool) {
 
 	toAddresses, err := formatEmailList(message.ToAddressList)
 	if err != nil {
-		log.Warn("%v", err)
+		log.Warnf("%v", err)
 		log.Error("Will not send email")
-		return
+		return false
 	} else if len(toAddresses) > 0 {
 		log.Debugf("To: %s", strings.Join(toAddresses, ", "))
 		msg.SetHeader("To", toAddresses...)

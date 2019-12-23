@@ -121,7 +121,7 @@ func send(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	msg := DispatchRequest{}
+	requestData := DispatchRequest{}
 	defer r.Body.Close()
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -129,42 +129,57 @@ func send(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = json.Unmarshal(body, &msg)
+	err = json.Unmarshal(body, &requestData)
 	if err != nil {
 		respondError(w, r, 400, "message format: %v", err)
 		return
 	}
 
-	request := DispatchRequest{}
-	for key, val := range msg {
-		request[strings.ToLower(key)] = val
+	formattedMsg := DispatchRequest{}
+	for key, val := range requestData {
+		formattedMsg[strings.ToLower(key)] = val
 	}
-	msg = request
-	msg["timestamp"] = recvTime.Format("Jan 02, 2006 15:04:05 UTC")
+	requestData = formattedMsg
+	requestData["timestamp"] = recvTime.Format("Jan 02, 2006 15:04:05 UTC")
 
-	if headerToken := r.Header.Get("X-Auth-Token"); headerToken != "" {
-		msg["auth-token"] = headerToken
-	}
+	headerData := getHeaderValues(r.Header)
 
-	if _, ok := msg["auth-token"]; !ok {
+	requestData = DispatchRequest(mergeRequests(headerData, requestData))
+
+	if _, ok := requestData["auth-token"]; !ok {
 		respondError(w, r, 400, "'auth-token' missing")
 		return
 	}
 
-	email, err := FormatEmail(msg["email"])
+	email, err := FormatEmail(requestData["email"])
 	if err != nil {
 		respondError(w, r, 400, "email address is not valid")
 		return
 	}
-	msg["email"] = email
+	requestData["email"] = email
 
-	err = dispatch.Send(msg)
+	err = dispatch.Send(requestData)
 	if err != nil {
 		respondError(w, r, 400, "%v", err)
 		return
 	}
 
 	respondSuccess(w, r)
+}
+
+func getHeaderValues(h http.Header) DispatchRequest {
+	headers := DispatchRequest{}
+	for header, values := range h {
+		if strings.Contains(header, "X-Dispatch-") {
+			// we need to go from "X-Dispatch-Auth-Token" to "auth-token"
+			c := strings.Replace(header, "X-Dispatch-", "", 1)
+			n := strings.ToLower(c)
+			for _, value := range values {
+				headers[n] = value
+			}
+		}
+	}
+	return headers
 }
 
 func defaultAction(w http.ResponseWriter, r *http.Request) {

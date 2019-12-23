@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"path"
 	"path/filepath"
+	"reflect"
 
 	"github.com/Masterminds/sprig"
 	log "github.com/sirupsen/logrus"
@@ -19,6 +20,9 @@ type DispatchMap map[string]DispatchTarget
 
 // DispatchRequest is the expected message submission
 type DispatchRequest map[string]string
+
+// DispatchRequest is values provided in headers
+type DispatchHeaders map[string]string
 
 // Dispatch is the central point for the dispatches
 type Dispatch struct {
@@ -85,11 +89,19 @@ func (d *Dispatch) Send(request DispatchRequest) error {
 		return errors.New("authentication is not valid")
 	}
 
+	r := mergeRequests(request, target.Defaults)
+
+	// format the email subject line
+	subject := ""
+	if s, ok := r["subject"]; ok && len(r["subject"]) > 0 {
+		subject = fmt.Sprintf(" - %s", s)
+	}
+
 	var email Message
 	// if 'from' field is black, email package will fill in a default
 	email.FromAddress = target.From
 	email.ToAddressList = target.To
-	email.Subject = fmt.Sprintf("[dispatch] %s - %s", target.Name, request["subject"])
+	email.Subject = fmt.Sprintf("[dispatch] %s%s", target.Name, subject)
 
 	var msgBuffer bytes.Buffer
 	d.messageTemplate.Execute(&msgBuffer, request)
@@ -102,10 +114,11 @@ func (d *Dispatch) Send(request DispatchRequest) error {
 
 // DispatchTarget is a target to send too
 type DispatchTarget struct {
-	AuthToken string   `yaml:"auth-token"`
-	From      string   `yaml:"from"`
-	To        []string `yaml:"to"`
-	Name      string   `yaml:"name"`
+	AuthToken string            `yaml:"auth-token"`
+	From      string            `yaml:"from"`
+	To        []string          `yaml:"to"`
+	Name      string            `yaml:"name"`
+	Defaults  map[string]string `yaml:"defaults"`
 }
 
 func getTargetConfigList(targetDir string) (target []string, err error) {
@@ -143,4 +156,23 @@ func loadTarget(target string, data []byte) (DispatchTarget, error) {
 
 	log.Debugf("target=%+v", t)
 	return t, nil
+}
+
+// mergeRequests merges two requests, primary overrides secondary
+func mergeRequests(primary, secondary interface{}) map[string]string {
+	// primary values always override secondary
+	result := map[string]string{}
+
+	vs := reflect.ValueOf(secondary)
+	for _, key := range vs.MapKeys() {
+		strct := vs.MapIndex(key)
+		result[key.Interface().(string)] = strct.Interface().(string)
+	}
+
+	vp := reflect.ValueOf(primary)
+	for _, key := range vp.MapKeys() {
+		strct := vp.MapIndex(key)
+		result[key.Interface().(string)] = strct.Interface().(string)
+	}
+	return result
 }
