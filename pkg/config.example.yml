@@ -1,7 +1,9 @@
+log_file: stdout
+target_dir: /targets
 web:
   address: 0.0.0.0
-  port: 8080
-rate-limit: 1/10s
+  port: 2525
+rate_limit: 1/10s
 smtp:
   server: localhost
   port: 25

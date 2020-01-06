@@ -1,0 +1,71 @@
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+- env:
+    - CGO_ENABLED=0
+  ldflags:
+    - -s -w -X main.buildVersion={{.Version}} -X main.buildCommit={{.ShortCommit}} -X main.buildDate={{.Date}}
+  goos:
+    - linux
+    - darwin
+    - windows
+  goarch:
+    - 386
+    - amd64
+    - arm
+    - arm64
+  goarm: [6,7]
+  ignore:
+    - goos: darwin
+      goarch: 386
+    - goos: darwin
+      goarch: arm
+    - goos: darwin
+      goarch: arm64
+
+snapshot:
+  # Allows you to change the name of the generated snapshot
+  # Default is `SNAPSHOT-{{.ShortCommit}}`.
+  name_template: "{{.Tag}}+{{.ShortCommit}}"
+
+archives:
+- replacements:
+    386: i386
+    amd64: x86_64
+  format_overrides:
+    - goos: windows
+      format: zip
+  files:
+      - LICENSE*
+      - README*
+      - CHANGELOG*
+      - pkg/services/*
+      - pkg/config.example.yml
+      - pkg/target.example.yml
+
+checksum:
+  name_template: '{{ .ProjectName }}_{{ .Version }}_checksums.txt'
+  algorithm: sha256
+  
+changelog:
+  skip: true
+  sort: asc
+  filters:
+    exclude:
+    - '^docs:'
+    - '^test:'
+
+release:
+  # If set to true, will not auto-publish the release.
+  draft: false
+
+  # If set to auto, will mark the release as not ready for production
+  # in case there is an indicator for this in the tag e.g. v1.0.0-rc1
+  # If set to true, will mark the release as not ready for production.
+  prerelease: auto
+
+  # You can change the name of the GitHub release.
+  name_template: "{{.Tag}}"
+  

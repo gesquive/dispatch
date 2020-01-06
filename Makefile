@@ -1,139 +1,154 @@
 #
 #  Makefile
 #
-#  The kickoff point for all project management commands.
-#
+#  A kickass golang v1.13.x makefile
+#  v1.0.5
+
+export SHELL ?= /bin/bash
+include make.cfg
 
 GOCC := go
 
 # Program version
-VERSION := $(shell git describe --always --tags)
+MK_VERSION := $(shell git describe --always --tags --dirty)
+MK_HASH := $(shell git rev-parse --short HEAD)
+MK_DATE := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 
-# Binary name for bintray
-BIN_NAME=dispatch
+PKG_NAME := ${REPO_HOST_URL}/${OWNER}/${PROJECT_NAME}
+PKG_PATH := ${GOPATH}/src/${PKG_NAME}
+PKG_LIST := ./...
 
-# Project owner for bintray
-OWNER=gesquive
+COVER_PATH := coverage
+DIST_PATH ?= dist
+INSTALL_PATH ?= /usr/local/bin/
 
-# Project name for bintray
-PROJECT_NAME=dispatch
+DK_NAME := ${REGISTRY_URL}/${OWNER}/${PROJECT_NAME}
+DK_VERSION = $(shell git describe --always --tags | sed 's/^v//' | sed 's/-g/-/')
+DK_PLATFORMS = linux/amd64,linux/arm/v7,linux/arm64
 
-# Project url used for builds
-# examples: github.com, bitbucket.org
-REPO_HOST_URL=github.com
+BIN ?= ${GOPATH}/bin
+GOLINT ?= ${BIN}/golint
+GORELEASER ?= ${BIN}/goreleaser
+DOCKER ?= docker
 
-# Grab the current commit
-GIT_COMMIT=$(shell git rev-parse HEAD)
-
-# Check if there are uncommited changes
-GIT_DIRTY=$(shell test -n "`git status --porcelain`" && echo "+CHANGES" || true)
-
-# Use a local vendor directory for any dependencies; comment this out to
-# use the global GOPATH instead
-# GOPATH=$(PWD)
-
-INSTALL_PATH=$(GOPATH)/src/${REPO_HOST_URL}/${OWNER}/${PROJECT_NAME}
-LOCAL_BIN=bin
-GOTEMP:=$(shell mktemp -d)
-
-export PATH := ${LOCAL_BIN}:${PATH}
+export CGO_ENABLED = 0
+export DOCKER_CLI_EXPERIMENTAL = enabled
 
 default: test build
 
 .PHONY: help
 help:
 	@echo 'Management commands for $(PROJECT_NAME):'
-	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
+	@grep -Eh '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
 	 awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 .PHONY: build
 build: ## Compile the project
-	@echo "building ${OWNER} ${BIN_NAME} ${VERSION}"
+	@echo "building ${OWNER} ${BIN_NAME} ${MK_VERSION}"
 	@echo "GOPATH=${GOPATH}"
-	${GOCC} build -ldflags "-X main.version=${VERSION} -X main.dirty=${GIT_DIRTY}" -o ${BIN_NAME}
+	${GOCC} build -a -ldflags "-X main.buildVersion=${MK_VERSION} -X main.buildDate=${MK_DATE}" -o ${BIN_NAME}
 
 .PHONY: install
 install: build ## Install the binary
-	install -d ${DESTDIR}/usr/local/bin/
-	install -m 755 ./${BIN_NAME} ${DESTDIR}/usr/local/bin/${BIN_NAME}
+	install -d ${INSTALL_PATH}
+	install -m 755 ./${BIN_NAME} ${INSTALL_PATH}/${BIN_NAME}
+
+.PHONY: link
+link: $(PKG_PATH) ## Symlink this project into the GOPATH
+$(PKG_PATH):
+	@mkdir -p `dirname $(PKG_PATH)`
+	@ln -s $(PWD) $(PKG_PATH) >/dev/null 2>&1
+
+.PHONY: path # Returns the project path
+path:
+	@echo $(PKG_PATH)
 
 .PHONY: deps
-deps: glide ## Download project dependencies
-	glide install
+deps: ## Download project dependencies
+	${GOCC} mod download
+	${GOCC} mod verify
+
+.PHONY: lint
+lint: ${GOLINT} ## Lint the source code
+	${GOLINT} -set_exit_status ${PKG_LIST}
 
 .PHONY: test
 test: ## Run golang tests
-	${GOCC} test ./...
+	${GOCC} test ${PKG_LIST}
 
 .PHONY: bench
-bench: glide ## Run golang benchmarks
-	${GOCC} test -benchmem -bench=. ./...
+bench: ## Run golang benchmarks
+	${GOCC} test -benchmem -bench=. ${PKG_LIST}
+
+.PHONY: coverage
+coverage: ## Run coverage report
+	${GOCC} test -v -cover ${PKG_LIST}
+
+.PHONY: coverage-report
+coverage-report: ## Generate global code coverage report
+	mkdir -p "${COVER_PATH}"
+	${GOCC} test -v -coverprofile "${COVER_PATH}/coverage.dat" ${PKG_LIST}
+	${GOCC} tool cover -html="${COVER_PATH}/coverage.dat" -o "${COVER_PATH}/coverage.html"
+
+.PHONY: race
+race: ## Run data race detector
+	${GOCC} test -race ${PKG_LIST}
 
 .PHONY: clean
 clean: ## Clean the directory tree
 	${GOCC} clean
 	rm -f ./${BIN_NAME}.test
 	rm -f ./${BIN_NAME}
-	rm -rf ./${LOCAL_BIN}
-	rm -rf ./dist
+	rm -rf "${DIST_PATH}"
+	rm -f "${COVER_PATH}"
 
-.PHONY: build-dist
-build-dist: gox
-	gox -verbose \
-	-ldflags "-X main.version=${VERSION} -X main.dirty=${GIT_DIRTY}" \
-	-os="linux darwin windows" \
-	-arch="amd64 386" \
-	-output="dist/{{.OS}}-{{.Arch}}/{{.Dir}}" .
+.PHONY: release-snapshot
+release-snapshot: ${GORELEASER} ## Cross compile and package to local disk
+	${GORELEASER} release --skip-publish --rm-dist --snapshot
 
-.PHONY: package-dist
-package-dist: gop
-	gop --delete \
-	--os="linux darwin windows" \
-	--arch="amd64 386" \
-	--archive="tar.gz" \
-	--files="LICENSE README.md pkg" \
-	--input="dist/{{.OS}}-{{.Arch}}/{{.Dir}}" \
-	--output="dist/{{.Dir}}-${VERSION}-{{.OS}}-{{.Arch}}.{{.Archive}}" .
-
-.PHONY: dist
-dist: build-dist package-dist ## Cross compile and package the full distribution
+.PHONY: release
+release: ${GORELEASER} ## Cross compile and package the full distribution
+	${GORELEASER} release
 
 .PHONY: fmt
 fmt: ## Reformat the source tree with gofmt
 	find . -name '*.go' -not -path './.vendor/*' -exec gofmt -w=true {} ';'
 
-.PHONY: link
-link: $(INSTALL_PATH) ## Symlink this project into the GOPATH
-$(INSTALL_PATH):
-	@mkdir -p `dirname $(INSTALL_PATH)`
-	@ln -s $(PWD) $(INSTALL_PATH) >/dev/null 2>&1
+# Install golang dependencies here
+${BIN}/%: 
+	@echo "Installing ${PACKAGE} to ${BIN}"
+	@mkdir -p ${BIN}
+	@tmp=$$(mktemp -d); \
+       env GO111MODULE=on GOPATH=$$tmp GOBIN=${BIN} ${GOCC} get ${PACKAGE} \
+        || ret=$$?; \
+       rm -rf $$tmp ; exit $$ret
 
-${LOCAL_BIN}:
-	@mkdir -p ${LOCAL_BIN}
+${BIN}/golint:     PACKAGE=golang.org/x/lint/golint
+${BIN}/goreleaser: PACKAGE=github.com/goreleaser/goreleaser
 
-.PHONY: glide
-glide: bin/glide
-bin/glide: ${LOCAL_BIN}
-	@echo "Installing glide"
-	@export GOPATH=${GOTEMP} && ${GOCC} get -u github.com/Masterminds/glide
-	@cp ${GOTEMP}/bin/glide ${LOCAL_BIN}
-	@glide --version
-	@rm -rf ${GOTEMP}
+# Docker related targets
+.PHONY: build-docker
+build-docker: ## Build the docker image
+	@echo "building ${MK_VERSION}"
+	${DOCKER} info
+	${DOCKER} build --pull -t ${DK_NAME}:${MK_VERSION} .
 
-.PHONY: gox
-gox: bin/gox
-bin/gox: ${LOCAL_BIN}
-	@echo "Installing gox"
-	@GOPATH=${GOTEMP} ${GOCC} get -u github.com/mitchellh/gox
-	@cp ${GOTEMP}/bin/gox ${LOCAL_BIN}/gox
-	@rm -rf ${GOTEMP}
+# build manifest for git describe
+# manifest version is "1.2.3-g23ab3df"
+# image version is "1.2.3-g23ab3df-amd64"
 
-.PHONY: gop
-gop: bin/gop
-bin/gop: ${LOCAL_BIN}
-	@echo "Installing gop"
-	@export GOPATH=${GOTEMP} && ${GOCC} get -u github.com/gesquive/gop
-	@cp ${GOTEMP}/bin/gop ${LOCAL_BIN}
-	@gop --version
-	@rm -rf ${GOTEMP}
+.PHONY: init-docker-build
+init-docker-build:
+	${DOCKER} buildx create --driver docker-container --name gobuild --use
+	${DOCKER} buildx inspect --bootstrap
+	${DOCKER} buildx ls
 
+.PHONY: release-docker-snapshot
+release-docker-snapshot: init-docker-build
+	@echo "building multi-arch docker ${DK_VERSION}"
+	${DOCKER} buildx build --platform ${DK_PLATFORMS} --pull -t ${DK_NAME}:${DK_VERSION} --push .
+
+.PHONY: release-docker
+release-docker: init-docker-build ## Build a multi-arch docker manifest and images
+	@echo "building multi-arch docker ${DK_VERSION}"
+	${DOCKER} buildx build --platform ${DK_PLATFORMS} --pull -t ${DK_NAME}:${DK_VERSION} -t ${DK_NAME}:latest --push .

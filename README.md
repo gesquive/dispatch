@@ -1,7 +1,10 @@
 # dispatch
-[![Travis CI](https://img.shields.io/travis/gesquive/dispatch/master.svg?style=flat-square)](https://travis-ci.org/gesquive/dispatch)
 [![Software License](https://img.shields.io/badge/License-MIT-orange.svg?style=flat-square)](https://github.com/gesquive/dispatch/blob/master/LICENSE)
 [![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](https://godoc.org/github.com/gesquive/dispatch)
+[![Pipeline Status](https://img.shields.io/gitlab/pipeline/gesquive/dispatch?style=flat-square)](https://gitlab.com/gesquive/dispatch/pipelines)
+[![Coverage Report](https://gitlab.com/gesquive/dispatch/badges/master/coverage.svg?style=flat-square)](https://gesquive.gitlab.io/dispatch/coverage.html)
+[![Docker Pulls](https://img.shields.io/docker/pulls/gesquive/dispatch?style=flat-square)](https://hub.docker.com/r/gesquive/dispatch)
+
 
 A self-hosted mail forwarding web API server.
 
@@ -10,7 +13,7 @@ This program was created to provide a json-based email API for static sites. You
 ## Installing
 
 ### Compile
-This project has been tested with go1.9+. Just run `go get -u github.com/gesquive/dispatch` and the executable should be built for you automatically in your `$GOPATH`.
+This project has only been tested with go1.11+. To compile just run `go get -u github.com/gesquive/dispatch` and the executable should be built for you automatically in your `$GOPATH`. This project uses go mods, so you might need to set `GO111MODULE=on` in order for `go get` to complete properly.
 
 Optionally you can clone the repo and run `make install` to build and copy the executable to `/usr/local/bin/` with correct permissions.
 
@@ -19,6 +22,18 @@ Alternately, you can download the latest release for your platform from [github]
 
 Once you have an executable, make sure to copy it somewhere on your path like `/usr/local/bin` or `C:/Program Files/`.
 If on a \*nix/mac system, make sure to run `chmod +x /path/to/dispatch`.
+
+### Docker
+You can also run dispatch from the provided [Docker image](https://hub.docker.com/r/gesquive/dispatch) with the sample configuration file:
+
+```shell
+mkdir -p dispatch && cp pkg/config.example.yml dispatch/config.yml
+docker run -d -p 2525:2525 -v $PWD/dispatch:/config dispatch:latest
+```
+
+To get the sample config working, you will need to configure the SMTP server and add target configs. 
+
+For more details read the [Docker image documentation](https://hub.docker.com/r/gesquive/dispatch).
 
 ## Configuration
 
@@ -102,7 +117,7 @@ Flags:
       --check                  Check the config for errors and exit
       --config string          Path to a specific config file (default "./config.yml")
   -l, --log-file string        Path to log file (default "/var/log/dispatch.log")
-  -p, --port int               The port to bind the webserver too (default 8080)
+  -p, --port int               The port to bind the webserver too (default 2525)
   -r, --rate-limit string      The rate limit at which to send emails in the format 'inf|<num>/<duration>'. inf for infinite or 1/10s for 1 email per 10 seconds. (default "inf")
   -w, --smtp-password string   Authenticate the SMTP server with this password
   -o, --smtp-port uint32       The port to use for the SMTP server (default 25)

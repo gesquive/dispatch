@@ -6,6 +6,7 @@ import (
 	"math"
 	"os"
 	"path"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -17,12 +18,14 @@ import (
 	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 )
 
-var version = "v0.7.0-git"
-var dirty = ""
+var (
+	buildVersion = "v0.8.0-dev"
+	buildCommit  = ""
+	buildDate    = ""
+)
 
 var cfgFile string
 
-var displayVersion string
 var showVersion bool
 var verbose bool
 var debug bool
@@ -31,26 +34,23 @@ var check bool
 var dispatch *Dispatch
 
 func main() {
-	displayVersion = fmt.Sprintf("dispatch %s%s",
-		version,
-		dirty)
-	Execute(displayVersion)
+	Execute()
 }
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
-	Use:   "dispatch",
-	Short: "A mail forwarding API service",
-	Long:  `Run a webserver that provides an json api for emails`,
-	Run:   run,
+	Use:    "dispatch",
+	Short:  "A mail forwarding API service",
+	Long:   `Run a webserver that provides an json api for emails`,
+	PreRun: preRun,
+	Run:    run,
 }
 
 // Execute adds all child commands to the root command sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute(version string) {
-	displayVersion = version
-	RootCmd.SetHelpTemplate(fmt.Sprintf("%s\nVersion:\n  github.com/gesquive/%s\n",
-		RootCmd.HelpTemplate(), displayVersion))
+func Execute() {
+	RootCmd.SetHelpTemplate(fmt.Sprintf("%s\nVersion:\n  github.com/gesquive/dispatch %s\n",
+		RootCmd.HelpTemplate(), buildVersion))
 	if err := RootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(-1)
@@ -73,7 +73,7 @@ func init() {
 		"Display the version number and exit")
 	RootCmd.PersistentFlags().StringP("address", "a", "0.0.0.0",
 		"The IP address to bind the web server too")
-	RootCmd.PersistentFlags().IntP("port", "p", 8080,
+	RootCmd.PersistentFlags().IntP("port", "p", 2525,
 		"The port to bind the webserver too")
 	RootCmd.PersistentFlags().StringP("rate-limit", "r", "inf",
 		"The rate limit at which to send emails in the format 'inf|<num>/<duration>'. "+
@@ -88,15 +88,13 @@ func init() {
 	RootCmd.PersistentFlags().StringP("smtp-password", "w", "",
 		"Authenticate the SMTP server with this password")
 
-	RootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false,
-		"Print logs to stdout instead of file")
-
 	RootCmd.PersistentFlags().BoolVarP(&debug, "debug", "D", false,
 		"Include debug statements in log output")
 	RootCmd.PersistentFlags().MarkHidden("debug")
 
 	viper.SetEnvPrefix("dispatch")
 	viper.AutomaticEnv()
+	viper.BindEnv("config")
 	viper.BindEnv("log_file")
 	viper.BindEnv("target_dir")
 	viper.BindEnv("address")
@@ -107,11 +105,12 @@ func init() {
 	viper.BindEnv("smtp_username")
 	viper.BindEnv("smtp_password")
 
+	viper.BindPFlag("config", RootCmd.PersistentFlags().Lookup("config"))
 	viper.BindPFlag("log_file", RootCmd.PersistentFlags().Lookup("log-file"))
 	viper.BindPFlag("target_dir", RootCmd.PersistentFlags().Lookup("target-dir"))
 	viper.BindPFlag("web.address", RootCmd.PersistentFlags().Lookup("address"))
 	viper.BindPFlag("web.port", RootCmd.PersistentFlags().Lookup("port"))
-	viper.BindPFlag("rate-limit", RootCmd.PersistentFlags().Lookup("rate-limit"))
+	viper.BindPFlag("rate_limit", RootCmd.PersistentFlags().Lookup("rate-limit"))
 	viper.BindPFlag("smtp.server", RootCmd.PersistentFlags().Lookup("smtp-server"))
 	viper.BindPFlag("smtp.port", RootCmd.PersistentFlags().Lookup("smtp-port"))
 	viper.BindPFlag("smtp.username", RootCmd.PersistentFlags().Lookup("smtp-username"))
@@ -120,38 +119,52 @@ func init() {
 	viper.SetDefault("log_file", "/var/log/dispatch.log")
 	viper.SetDefault("target_dir", "/etc/dispatch/targets-enabled")
 	viper.SetDefault("web.address", "0.0.0.0")
-	viper.SetDefault("web.port", 8080)
-	viper.SetDefault("rate-limit", "inf")
+	viper.SetDefault("web.port", 2525)
+	viper.SetDefault("rate_limit", "inf")
 	viper.SetDefault("smtp.server", "localhost")
 	viper.SetDefault("smtp.port", 25)
 }
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
+	cfgFile := viper.GetString("config")
 	if cfgFile != "" { // enable ability to specify config file via flag
 		viper.SetConfigFile(cfgFile)
+	} else {
+		viper.SetConfigName("config")                 // name of config file (without extension)
+		viper.AddConfigPath(".")                      // add current directory as first search path
+		viper.AddConfigPath("$HOME/.config/dispatch") // add home directory to search path
+		viper.AddConfigPath("/etc/dispatch")          // add etc to search path
+		viper.AutomaticEnv()                          // read in environment variables that match
 	}
-
-	viper.SetConfigName("config")                 // name of config file (without extension)
-	viper.AddConfigPath(".")                      // add current directory as first search path
-	viper.AddConfigPath("$HOME/.config/dispatch") // add home directory to search path
-	viper.AddConfigPath("/etc/dispatch")          // add etc to search path
-	viper.AutomaticEnv()                          // read in environment variables that match
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err != nil {
 		if !showVersion {
-			log.Error("Error opening config: ", err)
+			if !strings.Contains(err.Error(), "Not Found") {
+				fmt.Printf("Error opening config: %s\n", err)
+			}
 		}
 	}
 }
 
-func run(cmd *cobra.Command, args []string) {
+func preRun(cmd *cobra.Command, args []string) {
 	if showVersion {
-		fmt.Println(displayVersion)
+		fmt.Printf("github.com/gesquive/dispatch\n")
+		fmt.Printf(" Version:    %s\n", buildVersion)
+		if len(buildCommit) > 6 {
+			fmt.Printf(" Git Commit: %s\n", buildCommit[:7])
+		}
+		if buildDate != "" {
+			fmt.Printf(" Build Date: %s\n", buildDate)
+		}
+		fmt.Printf(" Go Version: %s\n", runtime.Version())
+		fmt.Printf(" OS/Arch:    %s/%s\n", runtime.GOOS, runtime.GOARCH)
 		os.Exit(0)
 	}
+}
 
+func run(cmd *cobra.Command, args []string) {
 	log.SetFormatter(&prefixed.TextFormatter{
 		TimestampFormat: time.RFC3339,
 	})
@@ -162,11 +175,12 @@ func run(cmd *cobra.Command, args []string) {
 		log.SetLevel(log.InfoLevel)
 	}
 
-	logFilePath := getLogFilePath(viper.GetString("log_file"))
+	logFilePath := viper.GetString("log_file")
 	log.Debugf("config: log_file=%s", logFilePath)
-	if verbose {
+	if strings.ToLower(logFilePath) == "stdout" || logFilePath == "-" || logFilePath == "" {
 		log.SetOutput(os.Stdout)
 	} else {
+		logFilePath = getLogFilePath(logFilePath)
 		logFile, err := os.OpenFile(logFilePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 		if err != nil {
 			log.Fatalf("error opening log file=%v", err)

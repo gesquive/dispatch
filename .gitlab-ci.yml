@@ -1,0 +1,140 @@
+image: index.docker.io/gesquive/go-builder:latest
+
+variables:
+  GOPATH: ${CI_PROJECT_DIR}/vendor/go
+  LOCAL_BIN: bin
+
+cache: &global_cache
+  key: "$CI_COMMIT_REF_SLUG"
+  paths:
+    - vendor/go/pkg/mod
+    - bin
+    - /var/lib/docker
+    - dist
+  policy: pull
+
+before_script:
+  - make deps
+
+stages:
+  - deps
+  - test
+  - build
+  - release
+  - release-docker
+
+dependencies:
+  stage: deps
+  tags: [linux, docker]
+  script:
+    - make deps
+  cache:
+    <<: *global_cache
+    policy: pull-push
+
+unit_tests:
+  stage: test
+  script:
+    - make test
+  cache:
+    <<: *global_cache
+
+.race_detector:
+  stage: test
+  script:
+    - make race
+  cache:
+    <<: *global_cache
+
+code_coverage:
+  stage: test
+  coverage: '/coverage: \d+.\d+% of statements/'
+  script:
+    - make coverage
+  cache:
+    <<: *global_cache
+
+build:
+  stage: build
+  script:
+    - make
+  cache:
+    <<: *global_cache
+
+pages:
+  stage: release
+  script:
+    - make coverage-report
+    - mv coverage/ public/
+  cache:
+    <<: *global_cache
+  artifacts:
+    paths:
+      - public
+  only:
+    - master
+
+.release:
+  stage: release
+  tags: [linux, docker]
+  cache:
+    <<: *global_cache
+    policy: pull-push
+  artifacts:
+    paths:
+      - dist/*_v*.tar.gz
+      - dist/*_v*.zip
+
+release-snapshot:
+  extends: .release
+  script:
+    - make release-snapshot
+  environment:
+    name: development
+  except:
+    - tags
+
+release-build:
+  extends: .release
+  script:
+    - make release
+  environment:
+    name: production
+  only:
+    - tags
+
+.release-docker:
+  image: docker.io/gesquive/master-builder
+  services:
+    - docker:dind
+  tags: [linux, docker]
+  stage: release-docker
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  cache:
+    <<: *global_cache
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker info
+    - qemu-register.sh --reset -p yes
+  only:
+    - master
+
+release-docker-snapshot:
+  extends: .release-docker
+  script:
+    - make release-docker-snapshot
+  environment:
+    name: development
+  except:
+    - tags
+
+release-docker-build:
+  extends: .release-docker
+  script:
+    - make release-docker
+  environment:
+    name: production
+  only:
+    - tags
