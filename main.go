@@ -135,7 +135,6 @@ func initConfig() {
 		viper.AddConfigPath(".")                      // add current directory as first search path
 		viper.AddConfigPath("$HOME/.config/dispatch") // add home directory to search path
 		viper.AddConfigPath("/etc/dispatch")          // add etc to search path
-		viper.AutomaticEnv()                          // read in environment variables that match
 	}
 
 	// If a config file is found, read it in.
