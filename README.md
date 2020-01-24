@@ -24,11 +24,10 @@ Once you have an executable, make sure to copy it somewhere on your path like `/
 If on a \*nix/mac system, make sure to run `chmod +x /path/to/dispatch`.
 
 ### Docker
-You can also run dispatch from the provided [Docker image](https://hub.docker.com/r/gesquive/dispatch) with the sample configuration file:
+You can also run dispatch from the provided [Docker image](https://hub.docker.com/r/gesquive/dispatch) and by providing a configuration file:
 
 ```shell
-mkdir -p dispatch && cp pkg/config.example.yml dispatch/config.yml
-docker run -d -p 2525:2525 -v $PWD/dispatch:/config dispatch:latest
+docker run -d -p 2525:2525 -v $PWD/docker:/config dispatch:latest
 ```
 
 To get the sample config working, you will need to configure the SMTP server and add target configs. 

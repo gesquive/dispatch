@@ -31,7 +31,8 @@ snapshot:
   name_template: "{{.Tag}}+{{.ShortCommit}}"
 
 archives:
-- replacements:
+- name_template: "{{ .ProjectName }}_v{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
+  replacements:
     386: i386
     amd64: x86_64
   format_overrides:
@@ -56,6 +57,7 @@ changelog:
     exclude:
     - '^docs:'
     - '^test:'
+    - '^blds:'
 
 release:
   # If set to true, will not auto-publish the release.
@@ -68,4 +70,3 @@ release:
 
   # You can change the name of the GitHub release.
   name_template: "{{.Tag}}"
-  

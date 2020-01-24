@@ -1,0 +1,14 @@
+log_file: stdout
+target_dir: /etc/dispatch/targets
+web:
+  address: 0.0.0.0
+  port: 2525
+rate-limit: 1/10s
+smtp:
+  server: smtp-mailserver
+  port: 25
+  username: ""
+  password: ""
+
+
+

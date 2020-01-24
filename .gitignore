@@ -7,5 +7,7 @@ scripts/
 *.log
 
 config*.yml
-todo.md
+!docker/config.yml
+!pkg/config.example.yml
+
 dispatch

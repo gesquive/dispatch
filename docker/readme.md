@@ -40,8 +40,7 @@ docker
 docker create \
   --name=dispatch \
   -p 2525:2525 \
-  -v path/to/config:/config \
-  -v path/to/targets:/targets
+  -v path/to/config:/config
   --restart unless-stopped \
   gesquive/dispatch
 ```
@@ -58,7 +57,6 @@ services:
     container_name: dispatch
     volumes:
       - path/to/config:/config
-      - path/to/targets:/targets
     ports:
       - 2525:2525
     restart: unless-stopped
@@ -70,4 +68,3 @@ The container defines the following parameters that you can set:
 | --------- | -------- |
 | `-p 2525`     | The port for the dispatch REST API |
 | `-v /config`  | The dispatch config goes here |
-| `-v /targets` | The target configs go here |
