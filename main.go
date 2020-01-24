@@ -27,7 +27,6 @@ var (
 var cfgFile string
 
 var showVersion bool
-var verbose bool
 var debug bool
 var check bool
 
@@ -70,7 +69,7 @@ func init() {
 		"Check the config for errors and exit")
 
 	RootCmd.PersistentFlags().BoolVar(&showVersion, "version", false,
-		"Display the version number and exit")
+		"Display the version info and exit")
 	RootCmd.PersistentFlags().StringP("address", "a", "0.0.0.0",
 		"The IP address to bind the web server too")
 	RootCmd.PersistentFlags().IntP("port", "p", 2525,

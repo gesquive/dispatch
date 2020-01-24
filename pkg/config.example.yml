@@ -1,5 +1,5 @@
-log_file: stdout
-target_dir: /targets
+log_file: dispatch.log
+target_dir: targets
 web:
   address: 0.0.0.0
   port: 2525

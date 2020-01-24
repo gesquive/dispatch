@@ -124,7 +124,6 @@ Flags:
   -x, --smtp-server string     The SMTP server to send email through (default "localhost")
   -u, --smtp-username string   Authenticate the SMTP server with this user
   -t, --target-dir string      Path to target configs (default "/etc/dispatch/targets-enabled")
-  -v, --verbose                Print logs to stdout instead of file
       --version                Display the version number and exit
 ```
 
