@@ -2,7 +2,7 @@
 #  Makefile
 #
 #  A kickass golang v1.13.x makefile
-#  v1.13.7
+#  v1.13.9
 
 export SHELL ?= /bin/bash
 include make.cfg
@@ -25,7 +25,7 @@ INSTALL_PATH ?= /usr/local/bin/
 DK_NAME := ${REGISTRY_URL}/${OWNER}/${PROJECT_NAME}
 DK_VERSION = $(shell git describe --always --tags | sed 's/^v//' | sed 's/-g/-/')
 DK_PLATFORMS ?= linux/amd64,linux/arm/v7,linux/arm64
-DK_PATH ?= docker/Dockerfile
+DK_PATH ?= Dockerfile
 
 BIN ?= ${GOPATH}/bin
 GOLINT ?= ${BIN}/golint
@@ -93,7 +93,7 @@ coverage-report: ## Generate global code coverage report
 
 .PHONY: race
 race: ## Run data race detector
-	${GOCC} test -race ${PKG_LIST}
+	CGO_ENABLED=1 ${GOCC} test -race ${PKG_LIST}
 
 .PHONY: clean
 clean: ## Clean the directory tree
@@ -140,7 +140,8 @@ build-docker: ## Build the docker image
 
 .PHONY: init-docker-build
 init-docker-build:
-	${DOCKER} buildx create --driver docker-container --name gobuild --use
+	${DOCKER} context create build
+	${DOCKER} buildx create --driver docker-container --name gobuild --use build
 	${DOCKER} buildx inspect --bootstrap
 	${DOCKER} buildx ls
 

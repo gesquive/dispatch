@@ -28,7 +28,7 @@ builds:
 snapshot:
   # Allows you to change the name of the generated snapshot
   # Default is `SNAPSHOT-{{.ShortCommit}}`.
-  name_template: "{{.Tag}}+{{.ShortCommit}}"
+  name_template: '{{ .Version }}+{{.ShortCommit}}'
 
 archives:
 - name_template: "{{ .ProjectName }}_v{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
@@ -47,9 +47,9 @@ archives:
       - pkg/target.example.yml
 
 checksum:
-  name_template: '{{ .ProjectName }}_{{ .Version }}_checksums.txt'
+  name_template: '{{ .ProjectName }}_v{{ .Version }}_checksums.txt'
   algorithm: sha256
-  
+
 changelog:
   skip: true
   sort: asc
