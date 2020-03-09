@@ -1,4 +1,4 @@
-FROM index.docker.io/gesquive/go-builder:latest AS builder
+FROM gesquive/go-builder:latest AS builder
 
 ENV APP=dispatch
 
