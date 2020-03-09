@@ -1,8 +1,8 @@
 # dispatch
 [![Software License](https://img.shields.io/badge/License-MIT-orange.svg?style=flat-square)](https://github.com/gesquive/dispatch/blob/master/LICENSE)
-[![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](https://godoc.org/github.com/gesquive/dispatch)
-[![Pipeline Status](https://img.shields.io/gitlab/pipeline/gesquive/dispatch?style=flat-square)](https://gitlab.com/gesquive/dispatch/pipelines)
-[![Coverage Report](https://gitlab.com/gesquive/dispatch/badges/master/coverage.svg?style=flat-square)](https://gesquive.gitlab.io/dispatch/coverage.html)
+[![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](https://pkg.go.dev/github.com/gesquive/dispatch)
+[![Build Status](https://img.shields.io/circleci/build/github/gesquive/dispatch?style=flat-square)](https://circleci.com/gh/gesquive/dispatch)
+[![Coverage Report](https://img.shields.io/codecov/c/gh/gesquive/dispatch?style=flat-square)](https://codecov.io/gh/gesquive/dispatch)
 [![Docker Pulls](https://img.shields.io/docker/pulls/gesquive/dispatch?style=flat-square)](https://hub.docker.com/r/gesquive/dispatch)
 
 
