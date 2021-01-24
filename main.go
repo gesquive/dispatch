@@ -176,6 +176,15 @@ func run(cmd *cobra.Command, args []string) {
 		log.SetLevel(log.InfoLevel)
 	}
 
+	log.Infof("running dispatch %s", buildVersion)
+	if len(buildCommit) > 6 {
+		log.Debugf("build: commit=%s", buildCommit[:7])
+	}
+	if buildDate != "" {
+		log.Debugf("build: date=%s", buildDate)
+	}
+	log.Debugf("build: info=%s %s/%s", runtime.Version(), runtime.GOOS, runtime.GOARCH)
+
 	logFilePath := viper.GetString("log_file")
 	log.Debugf("config: log_file=%s", logFilePath)
 	if strings.ToLower(logFilePath) == "stdout" || logFilePath == "-" || logFilePath == "" {
