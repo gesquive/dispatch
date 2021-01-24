@@ -19,7 +19,7 @@ import (
 )
 
 var (
-	buildVersion = "v0.8.2-dev"
+	buildVersion = "v0.8.3-dev"
 	buildCommit  = ""
 	buildDate    = ""
 )
