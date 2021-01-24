@@ -122,6 +122,9 @@ func init() {
 	viper.SetDefault("rate_limit", "inf")
 	viper.SetDefault("smtp.server", "localhost")
 	viper.SetDefault("smtp.port", 25)
+
+	dotReplacer := strings.NewReplacer(".", "_")
+	viper.SetEnvKeyReplacer(dotReplacer)
 }
 
 // initConfig reads in config file and ENV variables if set.
