@@ -240,9 +240,9 @@ func run(cmd *cobra.Command, args []string) {
 	server.Run(fmt.Sprintf("%s:%d", address, port))
 }
 
-func getRateLimit(rateLimit string) (limitMax int64, limitTTL time.Duration, err error) {
+func getRateLimit(rateLimit string) (limitMax float64, limitTTL time.Duration, err error) {
 	if rateLimit == "inf" {
-		return math.MaxInt64, time.Nanosecond, nil
+		return math.MaxFloat64, time.Nanosecond, nil
 	}
 
 	parts := strings.Split(rateLimit, "/")
@@ -250,7 +250,7 @@ func getRateLimit(rateLimit string) (limitMax int64, limitTTL time.Duration, err
 		msg := fmt.Sprintf("rate limit is not formatted properly - %v", rateLimit)
 		return limitMax, limitTTL, errors.New(msg)
 	}
-	limitMax, err = strconv.ParseInt(parts[0], 10, 64)
+	limitMax, err = strconv.ParseFloat(parts[0], 64)
 	if err != nil {
 		return
 	}

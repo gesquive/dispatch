@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/didip/tollbooth"
-	"github.com/didip/tollbooth/config"
+	"github.com/didip/tollbooth/v6"
+	"github.com/didip/tollbooth/v6/limiter"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -21,19 +21,19 @@ type Server struct {
 }
 
 // NewServer creates a new dispatch server
-func NewServer(dispatch *Dispatch, limitMax int64, limitTTL time.Duration) *Server {
+func NewServer(dispatch *Dispatch, limitMax float64, limitTTL time.Duration) *Server {
 	s := new(Server)
 	s.dispatch = dispatch
 
 	// setup a rate limiter if needed
-	if limitMax != math.MaxInt64 {
+	if limitMax != math.MaxFloat64 {
 		log.Infof("setting webserver rate-limit to %d/%s", limitMax, limitTTL)
-		limiter := tollbooth.NewLimiter(limitMax, limitTTL)
-		limiter.IPLookups = []string{"X-Forwarded-For", "RemoteAddr", "X-Real-IP"}
-		limiter.Methods = []string{"POST"}
+		lmt := tollbooth.NewLimiter(limitMax, &limiter.ExpirableOptions{DefaultExpirationTTL: limitTTL})
+		lmt.SetIPLookups([]string{"X-Forwarded-For", "RemoteAddr", "X-Real-IP"})
+		lmt.SetMethods([]string{"POST"})
 
 		// setup endpoints
-		http.Handle("/send", LimitFuncHandler(limiter, send))
+		http.Handle("/send", LimitFuncHandler(lmt, send))
 	} else {
 
 		http.HandleFunc("/send", send)
@@ -87,11 +87,9 @@ func WriteLogHandler(handler http.Handler) http.Handler {
 }
 
 // LimitHandler is a middleware that performs rate-limiting given http.Handler struct.
-func LimitHandler(limiter *config.Limiter, next http.Handler) http.Handler {
+func LimitHandler(lmt *limiter.Limiter, next http.Handler) http.Handler {
 	middle := func(w http.ResponseWriter, r *http.Request) {
-		tollbooth.SetResponseHeaders(limiter, w)
-
-		httpError := tollbooth.LimitByRequest(limiter, r)
+		httpError := tollbooth.LimitByRequest(lmt, w, r)
 		if httpError != nil {
 			respondError(w, r, httpError.StatusCode, httpError.Message)
 			return
@@ -105,8 +103,8 @@ func LimitHandler(limiter *config.Limiter, next http.Handler) http.Handler {
 }
 
 // LimitFuncHandler is a middleware that performs rate-limiting given request handler function.
-func LimitFuncHandler(limiter *config.Limiter, nextFunc func(http.ResponseWriter, *http.Request)) http.Handler {
-	return LimitHandler(limiter, http.HandlerFunc(nextFunc))
+func LimitFuncHandler(lmt *limiter.Limiter, nextFunc func(http.ResponseWriter, *http.Request)) http.Handler {
+	return LimitHandler(lmt, http.HandlerFunc(nextFunc))
 }
 
 func send(w http.ResponseWriter, r *http.Request) {
