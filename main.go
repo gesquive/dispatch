@@ -220,7 +220,7 @@ func run(cmd *cobra.Command, args []string) {
 	address := viper.GetString("web.address")
 	port := viper.GetInt("web.port")
 
-	limitMax, limitTTL, err := getRateLimit(viper.GetString("rate-limit"))
+	limitMax, limitTTL, err := getRateLimit(viper.GetString("rate_limit"))
 	if err != nil {
 		log.Fatalf("error parsing limit: %v", err)
 	}
