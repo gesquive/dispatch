@@ -227,7 +227,7 @@ func run(cmd *cobra.Command, args []string) {
 
 	if check {
 		log.Debugf("config: webserver=%s:%d", address, port)
-		log.Debugf("config: rate-limit=%d/%s", limitMax, limitTTL)
+		log.Debugf("config: rate-limit=%1.1f/%s", limitMax, limitTTL)
 		log.Infof("Config file format checks out, exiting")
 		if !debug {
 			log.Infof("Use the --debug flag for more info")

@@ -27,7 +27,7 @@ func NewServer(dispatch *Dispatch, limitMax float64, limitTTL time.Duration) *Se
 
 	// setup a rate limiter if needed
 	if limitMax != math.MaxFloat64 {
-		log.Infof("setting webserver rate-limit to %d/%s", limitMax, limitTTL)
+		log.Infof("setting webserver rate-limit to %1.1f/%s", limitMax, limitTTL)
 		lmt := tollbooth.NewLimiter(limitMax, &limiter.ExpirableOptions{DefaultExpirationTTL: limitTTL})
 		lmt.SetIPLookups([]string{"X-Forwarded-For", "RemoteAddr", "X-Real-IP"})
 		lmt.SetMethods([]string{"POST"})
