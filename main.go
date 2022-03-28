@@ -68,8 +68,6 @@ func init() {
 	RootCmd.PersistentFlags().BoolVar(&check, "check", false,
 		"Check the config for errors and exit")
 
-	RootCmd.PersistentFlags().BoolVar(&showVersion, "version", false,
-		"Display the version info and exit")
 	RootCmd.PersistentFlags().StringP("address", "a", "0.0.0.0",
 		"The IP address to bind the web server too")
 	RootCmd.PersistentFlags().IntP("port", "p", 2525,
@@ -87,6 +85,17 @@ func init() {
 	RootCmd.PersistentFlags().StringP("smtp-password", "w", "",
 		"Authenticate the SMTP server with this password")
 
+	RootCmd.PersistentFlags().String("target-name", "",
+		"Target name for an optional target")
+	RootCmd.PersistentFlags().String("target-auth-token", "",
+		"Target auth token for an optional target")
+	RootCmd.PersistentFlags().String("target-from-address", "",
+		"Target from address for an optional target")
+	RootCmd.PersistentFlags().StringSlice("target-to-address", []string{},
+		"Target to address list for an optional target")
+
+	RootCmd.PersistentFlags().BoolVar(&showVersion, "version", false,
+		"Display the version info and exit")
 	RootCmd.PersistentFlags().BoolVarP(&debug, "debug", "D", false,
 		"Include debug statements in log output")
 	RootCmd.PersistentFlags().MarkHidden("debug")
@@ -103,6 +112,10 @@ func init() {
 	viper.BindEnv("smtp_port")
 	viper.BindEnv("smtp_username")
 	viper.BindEnv("smtp_password")
+	viper.BindEnv("target_name")
+	viper.BindEnv("target_auth_token")
+	viper.BindEnv("target_from_address")
+	viper.BindEnv("target_to_address")
 
 	viper.BindPFlag("config", RootCmd.PersistentFlags().Lookup("config"))
 	viper.BindPFlag("log_file", RootCmd.PersistentFlags().Lookup("log-file"))
@@ -216,6 +229,24 @@ func run(cmd *cobra.Command, args []string) {
 	targetsDir := viper.Get("target_dir").(string)
 	log.Debugf("config: targets=%s", targetsDir)
 	dispatch = NewDispatch(targetsDir, smtpSettings)
+
+	targetAuth := viper.GetString("target_auth_token")
+	targetName := viper.GetString("target_name")
+	targetFrom := viper.GetString("target_from_address")
+	targetTo := viper.GetStringSlice("target_to_address")
+	singleTarget := DispatchTarget{}
+	if len(targetName) > 0 && len(targetAuth) > 0 && len(targetTo) > 0 {
+		singleTarget.Name = targetName
+		singleTarget.AuthToken = targetAuth
+		singleTarget.To = targetTo
+		if len(targetFrom) > 0 {
+			singleTarget.From = targetFrom
+		}
+		log.Debugf("adding optional target: %v", singleTarget)
+		dispatch.AddTarget(singleTarget)
+	} else {
+		log.Debugf("not enough info to add optional target")
+	}
 
 	address := viper.GetString("web.address")
 	port := viper.GetInt("web.port")

@@ -3,6 +3,7 @@ vendor/*
 dist/
 scripts/
 
+.env
 *.bak
 *.log
 

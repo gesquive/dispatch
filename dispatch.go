@@ -82,6 +82,11 @@ func (d *Dispatch) LoadTargets(targetDir string) {
 	}
 }
 
+// AddTarget adds a target to the dispatch map
+func (d *Dispatch) AddTarget(target DispatchTarget) {
+	d.dispatchMap[target.AuthToken] = target
+}
+
 // Send formats and sends the message
 func (d *Dispatch) Send(request DispatchRequest) error {
 	target, found := d.dispatchMap[request["auth-token"]]
