@@ -32,15 +32,18 @@ This image provides versions that are available via tags.
 # Usage
 
 Here are some example snippets to help you get started creating a container.
-docker
 
 ## Docker CLI
 
 ```shell
-docker create \
+docker run \
   --name=dispatch \
   -p 2525:2525 \
-  -v path/to/config:/config
+  -v path/to/config:/config \
+  -e "DISPATCH_TARGET_AUTH_TOKEN=<AUTH_TOKEN>" \
+  -e "DISPATCH_TARGET_NAME=test target" \
+  -e "DISPATCH_TARGET_TO_ADDRESS=email@mail.com" \
+  -e "DISPATCH_FROM_ADDRESS=test1@server.net,test2@server.net" \
   --restart unless-stopped \
   gesquive/dispatch
 ```
@@ -57,10 +60,16 @@ services:
     container_name: dispatch
     volumes:
       - path/to/config:/config
+    environment:
+      - DISPATCH_TARGET_AUTH_TOKEN="<AUTH_TOKEN>"
+      - DISPATCH_TARGET_NAME="test target"
+      - DISPATCH_TARGET_TO_ADDRESS="email@mail.com"
+      - DISPATCH_FROM_ADDRESS="test1@server.net,test2@server.net"
     ports:
       - 2525:2525
     restart: unless-stopped
 ```
+
 # Parameters
 The container defines the following parameters that you can set:
 
@@ -68,3 +77,7 @@ The container defines the following parameters that you can set:
 | --------- | -------- |
 | `-p 2525`     | The port for the dispatch REST API |
 | `-v /config`  | The dispatch config goes here |
+| `-e "DISPATCH_TARGET_AUTH_TOKEN=<AUTH_TOKEN>"` | The target auth token |
+| `-e "DISPATCH_TARGET_NAME=test target"` | The target name |
+| `-e "DISPATCH_TARGET_TO_ADDRESS=email@mail.com"` | The target too address |
+| `-e "DISPATCH_FROM_ADDRESS=test1@server.net,test2@server.net"` | The target from addresses |

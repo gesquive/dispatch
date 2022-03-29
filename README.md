@@ -112,18 +112,22 @@ Usage:
   dispatch [flags]
 
 Flags:
-  -a, --address string         The IP address to bind the web server too (default "0.0.0.0")
-      --check                  Check the config for errors and exit
-      --config string          Path to a specific config file (default "./config.yml")
-  -l, --log-file string        Path to log file (default "/var/log/dispatch.log")
-  -p, --port int               The port to bind the webserver too (default 2525)
-  -r, --rate-limit string      The rate limit at which to send emails in the format 'inf|<num>/<duration>'. inf for infinite or 1/10s for 1 email per 10 seconds. (default "inf")
-  -w, --smtp-password string   Authenticate the SMTP server with this password
-  -o, --smtp-port uint32       The port to use for the SMTP server (default 25)
-  -x, --smtp-server string     The SMTP server to send email through (default "localhost")
-  -u, --smtp-username string   Authenticate the SMTP server with this user
-  -t, --target-dir string      Path to target configs (default "/etc/dispatch/targets-enabled")
-      --version                Display the version number and exit
+  -a, --address string               The IP address to bind the web server too (default "0.0.0.0")
+      --check                        Check the config for errors and exit
+      --config string                Path to a specific config file (default "./config.yml")
+  -l, --log-file string              Path to log file (default "/var/log/dispatch.log")
+  -p, --port int                     The port to bind the webserver too (default 2525)
+  -r, --rate-limit string            The rate limit at which to send emails in the format 'inf|<num>/<duration>'. inf for infinite or 1/10s for 1 email per 10 seconds. (default "inf")
+  -w, --smtp-password string         Authenticate the SMTP server with this password
+  -o, --smtp-port uint32             The port to use for the SMTP server (default 25)
+  -x, --smtp-server string           The SMTP server to send email through (default "localhost")
+  -u, --smtp-username string         Authenticate the SMTP server with this user
+      --target-auth-token string     Target auth token for an optional target
+  -t, --target-dir string            Path to target configs (default "/etc/dispatch/targets-enabled")
+      --target-from-address string   Target from address for an optional target
+      --target-name string           Target name for an optional target
+      --target-to-address strings    Target to address list for an optional target
+      --version                      Display the version info and exit
 ```
 
 Optionally, a hidden debug flag is available in case you need additional output.
