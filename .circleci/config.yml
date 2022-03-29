@@ -1,4 +1,4 @@
-# Golang CircleCi config v1.13.9
+# Golang CircleCi config v1.18.0
 version: 2
 jobs:
   build-deps:

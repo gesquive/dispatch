@@ -1,8 +1,8 @@
 #
 #  Makefile
 #
-#  A kickass golang v1.13.x makefile
-#  v1.13.9
+#  A kickass golang v1.18.x makefile
+#  v1.18.0
 
 export SHELL ?= /bin/bash
 include make.cfg
@@ -47,7 +47,7 @@ help:
 build: ## Compile the project
 	@echo "building ${OWNER} ${BIN_NAME} ${MK_VERSION}"
 	@echo "GOPATH=${GOPATH}"
-	${GOCC} build -a -ldflags "-X main.buildVersion=${MK_VERSION} -X main.buildDate=${MK_DATE}" -o ${BIN_NAME}
+	${GOCC} build -a -ldflags "-X main.buildVersion=${MK_VERSION} -X main.buildDate=${MK_DATE} -X main.buildCommit=${MK_HASH}" -o ${BIN_NAME}
 
 .PHONY: install
 install: build ## Install the binary
@@ -120,12 +120,12 @@ ${BIN}/%:
 	@echo "Installing ${PACKAGE} to ${BIN}"
 	@mkdir -p ${BIN}
 	@tmp=$$(mktemp -d); \
-       env GO111MODULE=on GOPATH=$$tmp GOBIN=${BIN} ${GOCC} get ${PACKAGE} \
+       env GOPATH=$$tmp GOBIN=${BIN} ${GOCC} install ${PACKAGE} \
         || ret=$$?; \
        rm -rf $$tmp ; exit $$ret
 
-${BIN}/golint:     PACKAGE=golang.org/x/lint/golint
-${BIN}/goreleaser: PACKAGE=github.com/goreleaser/goreleaser
+${BIN}/golint:     PACKAGE=golang.org/x/lint/golint@latest
+${BIN}/goreleaser: PACKAGE=github.com/goreleaser/goreleaser@latest
 
 # Docker related targets
 .PHONY: build-docker

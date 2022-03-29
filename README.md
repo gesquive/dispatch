@@ -13,7 +13,7 @@ This program was created to provide a json-based email API for static sites. You
 ## Installing
 
 ### Compile
-This project has only been tested with go1.11+. To compile just run `go get -u github.com/gesquive/dispatch` and the executable should be built for you automatically in your `$GOPATH`. This project uses go mods, so you might need to set `GO111MODULE=on` in order for `go get` to complete properly.
+This project has only been tested with go1.17+. To compile just run `go install github.com/gesquive/dispatch@latest` and the executable should be built for you automatically in your `$GOPATH`. 
 
 Optionally you can clone the repo and run `make install` to build and copy the executable to `/usr/local/bin/` with correct permissions.
 
