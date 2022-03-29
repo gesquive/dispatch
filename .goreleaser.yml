@@ -22,8 +22,6 @@ builds:
       goarch: 386
     - goos: darwin
       goarch: arm
-    - goos: darwin
-      goarch: arm64
 
 snapshot:
   # Allows you to change the name of the generated snapshot
@@ -51,13 +49,26 @@ checksum:
   algorithm: sha256
 
 changelog:
-  skip: true
+  skip: false
   sort: asc
+  groups:
+    - title: 'New Features'
+      regexp: "^feat[(\\w)]*:+.*$"
+      order: 0
+    - title: 'Bug Fixes'
+      regexp: "^fix[(\\w)]*:+.*$"
+      order: 10
+    - title: 'Other Work'
+      order: 999
   filters:
     exclude:
     - '^docs:'
     - '^test:'
     - '^blds:'
+    - Merge pull request
+    - Merge remote-tracking branch
+    - Merge branch
+    - go mod tidy
 
 release:
   # If set to true, will not auto-publish the release.
