@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"html/template"
 	"io/ioutil"
 	"path"
 	"path/filepath"
 	"reflect"
+	"text/template"
 
 	"github.com/Masterminds/sprig/v3"
 	log "github.com/sirupsen/logrus"
@@ -46,7 +46,7 @@ func NewDispatch(targetDir string, smtpSettings SMTPSettings) *Dispatch {
 {{ index . "message"}}
 `
 
-	d.messageTemplate = template.Must(template.New("request").Funcs(sprig.FuncMap()).Parse(msg))
+	d.messageTemplate = template.Must(template.New("request").Funcs(sprig.TxtFuncMap()).Parse(msg))
 	d.LoadTargets(targetDir)
 	return d
 }
